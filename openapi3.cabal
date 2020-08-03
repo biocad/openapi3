@@ -1,22 +1,22 @@
 cabal-version:       >=1.10
-name:                swagger2
-version:             2.6.1
+name:                openapi3
+version:             3.0.0
 
-synopsis:            Swagger 2.0 data model
+synopsis:            OpenAPI 3.0 data model
 category:            Web, Swagger
 description:
-  This library is intended to be used for decoding and encoding Swagger 2.0 API
+  This library is intended to be used for decoding and encoding OpenAPI 3.0 API
   specifications as well as manipulating them.
   .
-  The original Swagger 2.0 specification is available at http://swagger.io/specification/.
+  The original OpenAPI 3.0 specification is available at http://swagger.io/specification/.
 
-homepage:            https://github.com/GetShopTV/swagger2
-bug-reports:         https://github.com/GetShopTV/swagger2/issues
+homepage:            https://github.com/biocad/openapi3
+bug-reports:         https://github.com/biocad/openapi3/issues
 license:             BSD3
 license-file:        LICENSE
-author:              Nickolay Kudasov
-maintainer:          nickolay@getshoptv.com
-copyright:           (c) 2015-2016, GetShopTV
+author:              Nickolay Kudasov, Maxim Koltsov
+maintainer:          nickolay@getshoptv.com, kolmax94@gmail.com
+copyright:           (c) 2015-2016, GetShopTV, (c) 2020, Biocad
 build-type:          Custom
 extra-source-files:
     README.md
@@ -100,7 +100,7 @@ test-suite spec
  -- We need aeson's toEncoding for doctests too
   build-depends:
       base
-    , swagger2
+    , QuickCheck
     , aeson
     , base-compat-batteries
     , bytestring
@@ -109,12 +109,12 @@ test-suite spec
     , insert-ordered-containers
     , lens
     , mtl
+    , openapi3
     , template-haskell
     , text
     , time
     , unordered-containers
     , vector
-    , QuickCheck
 
   -- test-suite only dependencies
   build-depends:
@@ -147,4 +147,4 @@ test-suite doctests
 
 source-repository head
   type:     git
-  location: https://github.com/GetShopTV/swagger2.git
+  location: https://github.com/biocad/openapi3.git

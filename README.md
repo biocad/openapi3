@@ -1,21 +1,22 @@
 # swagger2
 
-[![Join the chat at https://gitter.im/haskell-swagger2/Lobby](https://badges.gitter.im/haskell-swagger2/Lobby.svg)](https://gitter.im/haskell-swagger2/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Hackage](https://img.shields.io/hackage/v/openapi3.svg)](http://hackage.haskell.org/package/openapi3)
+[![Build Status](https://travis-ci.org/biocad/openapi3.svg?branch=master)](https://travis-ci.org/biocad/openapi3)
+[![Stackage LTS](http://stackage.org/package/openapi3/badge/lts)](http://stackage.org/lts/package/opeopenapi3)
+[![Stackage Nightly](http://stackage.org/package/openapi3/badge/nightly)](http://stackage.org/nightly/package/openapi3)
 
-[![Hackage](https://img.shields.io/hackage/v/swagger2.svg)](http://hackage.haskell.org/package/swagger2)
-[![Build Status](https://travis-ci.org/GetShopTV/swagger2.svg?branch=master)](https://travis-ci.org/GetShopTV/swagger2)
-[![Stackage LTS](http://stackage.org/package/swagger2/badge/lts)](http://stackage.org/lts/package/swagger2)
-[![Stackage Nightly](http://stackage.org/package/swagger2/badge/nightly)](http://stackage.org/nightly/package/swagger2)
+OpenAPI 3.0 data model.
 
-Swagger 2.0 data model.
+The original OpenAPI 3.0 specification is available at http://swagger.io/specification/.
 
-The original Swagger 2.0 specification is available at http://swagger.io/specification/.
+This package is heavily based on excellent work on Swagger 2.0 at
+https://github.com/GetShopTV/swagger2.
 
 ## Usage
 
 This library is intended to be used for decoding and encoding Swagger 2.0 API specifications as well as manipulating them.
 
-Please refer to [haddock documentation](http://hackage.haskell.org/package/swagger2).
+Please refer to [haddock documentation](http://hackage.haskell.org/package/openapi3).
 
 Some examples can be found in [`examples/` directory](/examples).
 
@@ -33,7 +34,8 @@ Many Swagger tools, including server and client code generation for many languag
 
 We are happy to receive bug reports, fixes, documentation enhancements, and other improvements.
 
-Please report bugs via the [github issue tracker](https://github.com/GetShopTV/swagger2/issues).
+Please report bugs via the [github issue tracker](https://github.com/biocad/openapi3/issues).
 
 *GetShopTV Team*
 
+*Biocad Team*
