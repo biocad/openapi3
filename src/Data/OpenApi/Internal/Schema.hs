@@ -17,7 +17,7 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 -- For TypeErrors
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
-module Data.Swagger.Internal.Schema where
+module Data.OpenApi.Internal.Schema where
 
 import Prelude ()
 import Prelude.Compat
@@ -60,13 +60,13 @@ import Data.Word
 import GHC.Generics
 import qualified Data.UUID.Types as UUID
 
-import Data.Swagger.Declare
-import Data.Swagger.Internal
-import Data.Swagger.Internal.ParamSchema (ToParamSchema(..))
-import Data.Swagger.Lens hiding (name, schema)
-import qualified Data.Swagger.Lens as Swagger
-import Data.Swagger.SchemaOptions
-import Data.Swagger.Internal.TypeShape
+import Data.OpenApi.Declare
+import Data.OpenApi.Internal
+import Data.OpenApi.Internal.ParamSchema (ToParamSchema(..))
+import Data.OpenApi.Lens hiding (name, schema)
+import qualified Data.OpenApi.Lens as Swagger
+import Data.OpenApi.SchemaOptions
+import Data.OpenApi.Internal.TypeShape
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -97,7 +97,7 @@ rename name (NamedSchema _ schema) = NamedSchema name schema
 --
 -- import Control.Lens
 -- import Data.Proxy
--- import Data.Swagger
+-- import Data.OpenApi
 --
 -- data Coord = Coord { x :: Double, y :: Double }
 --
@@ -859,6 +859,6 @@ data Proxy2 a b = Proxy2
 data Proxy3 a b c = Proxy3
 
 -- $setup
--- >>> import Data.Swagger
+-- >>> import Data.OpenApi
 -- >>> import Data.Aeson (encode)
 -- >>> import Data.Aeson.Types (toJSONKeyText)

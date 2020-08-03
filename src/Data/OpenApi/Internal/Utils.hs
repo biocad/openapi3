@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
-module Data.Swagger.Internal.Utils where
+module Data.OpenApi.Internal.Utils where
 
 import Prelude ()
 import Prelude.Compat

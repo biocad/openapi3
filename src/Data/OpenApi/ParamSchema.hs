@@ -1,10 +1,10 @@
 -- |
--- Module:      Data.Swagger.ParamSchema
+-- Module:      Data.OpenApi.ParamSchema
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
 -- Types and functions for working with Swagger parameter schema.
-module Data.Swagger.ParamSchema (
+module Data.OpenApi.ParamSchema (
   -- * Encoding
   ToParamSchema(..),
 
@@ -22,5 +22,5 @@ module Data.Swagger.ParamSchema (
   defaultSchemaOptions,
 ) where
 
-import Data.Swagger.Internal.ParamSchema
-import Data.Swagger.SchemaOptions
+import Data.OpenApi.Internal.ParamSchema
+import Data.OpenApi.SchemaOptions

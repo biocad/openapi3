@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
-module Data.Swagger.SchemaSpec where
+module Data.OpenApi.SchemaSpec where
 
 import Prelude ()
 import Prelude.Compat
@@ -14,10 +14,10 @@ import Data.Proxy
 import Data.Set (Set)
 import qualified Data.Text as Text
 
-import Data.Swagger
-import Data.Swagger.Declare
+import Data.OpenApi
+import Data.OpenApi.Declare
 
-import Data.Swagger.CommonTestTypes
+import Data.OpenApi.CommonTestTypes
 import SpecCommon
 import Test.Hspec
 

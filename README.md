@@ -1,4 +1,4 @@
-# swagger2
+# OpenApi 3
 
 [![Hackage](https://img.shields.io/hackage/v/openapi3.svg)](http://hackage.haskell.org/package/openapi3)
 [![Build Status](https://travis-ci.org/biocad/openapi3.svg?branch=master)](https://travis-ci.org/biocad/openapi3)
@@ -14,7 +14,7 @@ https://github.com/GetShopTV/swagger2.
 
 ## Usage
 
-This library is intended to be used for decoding and encoding Swagger 2.0 API specifications as well as manipulating them.
+This library is intended to be used for decoding and encoding OpenApi 3.0.3 specifications as well as manipulating them.
 
 Please refer to [haddock documentation](http://hackage.haskell.org/package/openapi3).
 

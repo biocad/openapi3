@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports    #-}
-module Data.Swagger.Schema.GeneratorSpec where
+module Data.OpenApi.Schema.GeneratorSpec where
 
 import           Prelude                             ()
 import           Prelude.Compat
 
-import           Data.Swagger
-import           Data.Swagger.Schema.Generator
+import           Data.OpenApi
+import           Data.OpenApi.Schema.Generator
 
 import           Control.Lens.Operators
 import           Data.Aeson

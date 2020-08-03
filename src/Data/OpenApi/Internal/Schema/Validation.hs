@@ -14,14 +14,14 @@
 {-# LANGUAGE UndecidableInstances       #-}
 {-# LANGUAGE ViewPatterns               #-}
 -- |
--- Module:      Data.Swagger.Internal.Schema.Validation
+-- Module:      Data.OpenApi.Internal.Schema.Validation
 -- Copyright:   (c) 2015 GetShopTV
 -- License:     BSD3
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
 -- Validate JSON values with Swagger Schema.
-module Data.Swagger.Internal.Schema.Validation where
+module Data.OpenApi.Internal.Schema.Validation where
 
 import           Prelude                             ()
 import           Prelude.Compat
@@ -48,10 +48,10 @@ import qualified Data.Text.Lazy.Encoding             as TL
 import           Data.Vector                         (Vector)
 import qualified Data.Vector                         as Vector
 
-import           Data.Swagger.Declare
-import           Data.Swagger.Internal
-import           Data.Swagger.Internal.Schema
-import           Data.Swagger.Lens
+import           Data.OpenApi.Declare
+import           Data.OpenApi.Internal
+import           Data.OpenApi.Internal.Schema
+import           Data.OpenApi.Lens
 
 -- | Validate @'ToJSON'@ instance matches @'ToSchema'@ for a given value.
 -- This can be used with QuickCheck to ensure those instances are coherent:

@@ -3,7 +3,7 @@ name:                openapi3
 version:             3.0.0
 
 synopsis:            OpenAPI 3.0 data model
-category:            Web, Swagger
+category:            Web, Swagger, OpenApi
 description:
   This library is intended to be used for decoding and encoding OpenAPI 3.0 API
   specifications as well as manipulating them.
@@ -35,25 +35,25 @@ custom-setup
 library
   hs-source-dirs:      src
   exposed-modules:
-    Data.Swagger
-    Data.Swagger.Declare
-    Data.Swagger.Lens
-    Data.Swagger.Operation
-    Data.Swagger.Optics
-    Data.Swagger.ParamSchema
-    Data.Swagger.Schema
-    Data.Swagger.Schema.Generator
-    Data.Swagger.Schema.Validation
-    Data.Swagger.SchemaOptions
+    Data.OpenApi
+    Data.OpenApi.Declare
+    Data.OpenApi.Lens
+    Data.OpenApi.Operation
+    Data.OpenApi.Optics
+    Data.OpenApi.ParamSchema
+    Data.OpenApi.Schema
+    Data.OpenApi.Schema.Generator
+    Data.OpenApi.Schema.Validation
+    Data.OpenApi.SchemaOptions
 
     -- internal modules
-    Data.Swagger.Internal
-    Data.Swagger.Internal.Schema
-    Data.Swagger.Internal.Schema.Validation
-    Data.Swagger.Internal.ParamSchema
-    Data.Swagger.Internal.Utils
-    Data.Swagger.Internal.AesonUtils
-    Data.Swagger.Internal.TypeShape
+    Data.OpenApi.Internal
+    Data.OpenApi.Internal.Schema
+    Data.OpenApi.Internal.Schema.Validation
+    Data.OpenApi.Internal.ParamSchema
+    Data.OpenApi.Internal.Utils
+    Data.OpenApi.Internal.AesonUtils
+    Data.OpenApi.Internal.TypeShape
 
   -- GHC boot libraries
   build-depends:
@@ -129,12 +129,12 @@ test-suite spec
 
   other-modules:
     SpecCommon
-    Data.SwaggerSpec
-    Data.Swagger.CommonTestTypes
-    Data.Swagger.ParamSchemaSpec
-    Data.Swagger.SchemaSpec
-    Data.Swagger.Schema.ValidationSpec
-    Data.Swagger.Schema.GeneratorSpec
+    Data.OpenApiSpec
+    Data.OpenApi.CommonTestTypes
+    Data.OpenApi.ParamSchemaSpec
+    Data.OpenApi.SchemaSpec
+    Data.OpenApi.Schema.ValidationSpec
+    Data.OpenApi.Schema.GeneratorSpec
   default-language: Haskell2010
 
 test-suite doctests

@@ -10,10 +10,10 @@ import Data.Proxy
 import Data.Text (Text)
 import GHC.Generics
 
-import Data.Swagger
-import Data.Swagger.Declare
-import Data.Swagger.Lens
-import Data.Swagger.Operation
+import Data.OpenApi
+import Data.OpenApi.Declare
+import Data.OpenApi.Lens
+import Data.OpenApi.Operation
 
 type Username = Text
 

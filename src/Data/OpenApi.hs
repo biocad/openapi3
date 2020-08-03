@@ -1,5 +1,5 @@
 -- |
--- Module:      Data.Swagger
+-- Module:      Data.OpenApi
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
@@ -9,7 +9,7 @@
 -- These files can then be used by the Swagger-UI project to display the API
 -- and Swagger-Codegen to generate clients in various languages.
 -- Additional utilities can also take advantage of the resulting files, such as testing tools.
-module Data.Swagger (
+module Data.OpenApi (
   -- * How to use this library
   -- $howto
 
@@ -29,12 +29,12 @@ module Data.Swagger (
   -- $validation
 
   -- * Re-exports
-  module Data.Swagger.Lens,
-  module Data.Swagger.Optics,
-  module Data.Swagger.Operation,
-  module Data.Swagger.ParamSchema,
-  module Data.Swagger.Schema,
-  module Data.Swagger.Schema.Validation,
+  module Data.OpenApi.Lens,
+  module Data.OpenApi.Optics,
+  module Data.OpenApi.Operation,
+  module Data.OpenApi.ParamSchema,
+  module Data.OpenApi.Schema,
+  module Data.OpenApi.Schema.Validation,
 
   -- * Swagger specification
   Swagger(..),
@@ -120,14 +120,14 @@ module Data.Swagger (
   URL(..),
 ) where
 
-import Data.Swagger.Lens
-import Data.Swagger.Optics ()
-import Data.Swagger.Operation
-import Data.Swagger.ParamSchema
-import Data.Swagger.Schema
-import Data.Swagger.Schema.Validation
+import Data.OpenApi.Lens
+import Data.OpenApi.Optics ()
+import Data.OpenApi.Operation
+import Data.OpenApi.ParamSchema
+import Data.OpenApi.Schema
+import Data.OpenApi.Schema.Validation
 
-import Data.Swagger.Internal
+import Data.OpenApi.Internal
 
 -- $setup
 -- >>> import Control.Lens
@@ -186,7 +186,7 @@ import Data.Swagger.Internal
 
 -- $lens
 --
--- Note: if you're working with the <https://hackage.haskell.org/package/optics optics> library, take a look at "Data.Swagger.Optics".
+-- Note: if you're working with the <https://hackage.haskell.org/package/optics optics> library, take a look at "Data.OpenApi.Optics".
 --
 -- Since @'Swagger'@ has a fairly complex structure, lenses and prisms are used
 -- to work comfortably with it. In combination with @'Monoid'@ instances, lenses
@@ -298,10 +298,10 @@ import Data.Swagger.Internal
 -- for a type-level servant API.
 --
 -- Lenses and prisms can be used to manipulate such specification to add additional information, tags, extra responses, etc.
--- To facilitate common needs, @"Data.Swagger.Operation"@ module provides useful helpers.
+-- To facilitate common needs, @"Data.OpenApi.Operation"@ module provides useful helpers.
 
 -- $validation
 -- While @'ToParamSchema'@ and @'ToSchema'@ provide means to easily obtain schemas for Haskell types,
 -- there is no static mechanism to ensure those instances correspond to the @'ToHttpApiData'@ or @'ToJSON'@ instances.
 --
--- @"Data.Swagger.Schema.Validation"@ addresses @'ToJSON'@/@'ToSchema'@ validation.
+-- @"Data.OpenApi.Schema.Validation"@ addresses @'ToJSON'@/@'ToSchema'@ validation.

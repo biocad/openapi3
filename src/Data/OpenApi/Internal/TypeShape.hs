@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Data.Swagger.Internal.TypeShape where
+module Data.OpenApi.Internal.TypeShape where
 
 import Data.Proxy
 import GHC.Generics

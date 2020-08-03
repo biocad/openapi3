@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Data.Swagger.Schema.Generator where
+module Data.OpenApi.Schema.Generator where
 
 import           Prelude                                 ()
 import           Prelude.Compat
@@ -16,9 +16,9 @@ import           Data.Maybe
 import           Data.Proxy
 import           Data.Scientific
 import qualified Data.Set                                as S
-import           Data.Swagger
-import           Data.Swagger.Declare
-import           Data.Swagger.Internal.Schema.Validation (inferSchemaTypes)
+import           Data.OpenApi
+import           Data.OpenApi.Declare
+import           Data.OpenApi.Internal.Schema.Validation (inferSchemaTypes)
 import qualified Data.Text                               as T
 import qualified Data.Vector                             as V
 import           Test.QuickCheck                         (arbitrary)

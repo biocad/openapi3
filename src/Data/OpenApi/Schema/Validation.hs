@@ -1,10 +1,10 @@
 -- |
--- Module:      Data.Swagger.Schema.Validation
+-- Module:      Data.OpenApi.Schema.Validation
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
 -- Validate JSON values with Swagger Schema.
-module Data.Swagger.Schema.Validation (
+module Data.OpenApi.Schema.Validation (
   -- * How to use validation
   -- $howto
 
@@ -29,13 +29,13 @@ module Data.Swagger.Schema.Validation (
   validateJSONWithPatternChecker,
 ) where
 
-import Data.Swagger.Internal.Schema.Validation
+import Data.OpenApi.Internal.Schema.Validation
 
 -- $setup
 -- >>> import Control.Lens
 -- >>> import Data.Aeson
 -- >>> import Data.Proxy
--- >>> import Data.Swagger
+-- >>> import Data.OpenApi
 -- >>> import GHC.Generics
 -- >>> :set -XDeriveGeneric
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE QuasiQuotes         #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Data.Swagger.CommonTestTypes where
+module Data.OpenApi.CommonTestTypes where
 
 import           Prelude               ()
 import           Prelude.Compat
@@ -18,7 +18,7 @@ import qualified Data.Text             as Text
 import           Data.Word
 import           GHC.Generics
 
-import           Data.Swagger
+import           Data.OpenApi
 
 -- ========================================================================
 -- Unit type

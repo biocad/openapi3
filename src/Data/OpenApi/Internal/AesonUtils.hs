@@ -5,7 +5,7 @@
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
-module Data.Swagger.Internal.AesonUtils (
+module Data.OpenApi.Internal.AesonUtils (
     -- * Generic functions
     AesonDefaultValue(..),
     sopSwaggerGenericToJSON,
@@ -27,7 +27,7 @@ import Prelude.Compat
 import Control.Applicative ((<|>))
 import Control.Lens     (makeLenses, (^.))
 import Control.Monad    (unless)
-import Data.Aeson       (ToJSON(..), FromJSON(..), Value(..), Object, object, (.:), (.:?), (.!=), withObject)
+import Data.Aeson       (ToJSON(..), FromJSON(..), Value(..), Object, object, (.:), (.:?), (.!=), withObject, Encoding, pairs, (.=), Series)
 import Data.Aeson.Types (Parser, Pair)
 import Data.Char        (toLower, isUpper)
 import Data.Foldable    (traverse_)
@@ -40,8 +40,6 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Set as Set
 import qualified Data.HashMap.Strict.InsOrd as InsOrd
 import qualified Data.HashSet.InsOrd as InsOrdHS
-
-import Data.Aeson (Encoding, pairs, (.=), Series)
 
 -------------------------------------------------------------------------------
 -- SwaggerAesonOptions

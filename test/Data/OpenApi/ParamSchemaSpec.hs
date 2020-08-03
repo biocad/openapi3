@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Swagger.ParamSchemaSpec where
+module Data.OpenApi.ParamSchemaSpec where
 
 import Data.Aeson
 import Data.Aeson.QQ.Simple
@@ -12,9 +12,9 @@ import Data.Char
 import Data.Proxy
 import GHC.Generics
 
-import Data.Swagger
+import Data.OpenApi
 
-import Data.Swagger.CommonTestTypes
+import Data.OpenApi.CommonTestTypes
 import SpecCommon
 import Test.Hspec
 import Data.Time.LocalTime
