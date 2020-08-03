@@ -145,6 +145,12 @@ test-suite doctests
   main-is:          doctests.hs
   type:             exitcode-stdio-1.0
 
+executable example
+  hs-source-dirs:   examples
+  main-is:          hackage.hs
+  default-language: Haskell2010
+  build-depends:    base, aeson, lens, openapi3, text
+
 source-repository head
   type:     git
   location: https://github.com/biocad/openapi3.git

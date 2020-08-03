@@ -48,7 +48,7 @@ newtype Package = Package { packageName :: Text }
   deriving (Generic, ToSchema)
 
 hackageSwagger :: Swagger
-hackageSwagger = spec & definitions .~ defs
+hackageSwagger = spec & components.schemas .~ defs
   where
     (defs, spec) = runDeclare declareHackageSwagger mempty
 
@@ -58,26 +58,22 @@ declareHackageSwagger = do
   let usernameParamSchema = toParamSchema (Proxy :: Proxy Username)
 
   -- responses
-  userSummaryResponse   <- declareResponse (Proxy :: Proxy UserSummary)
-  userDetailedResponse  <- declareResponse (Proxy :: Proxy UserDetailed)
-  packagesResponse      <- declareResponse (Proxy :: Proxy [Package])
+  userSummaryResponse   <- declareResponse "application/json" (Proxy :: Proxy UserSummary)
+  userDetailedResponse  <- declareResponse "application/json" (Proxy :: Proxy UserDetailed)
+  packagesResponse      <- declareResponse "application/json" (Proxy :: Proxy [Package])
 
   return $ mempty
     & paths .~
         [ ("/users", mempty & get ?~ (mempty
-            & produces ?~ MimeList ["application/json"]
             & at 200 ?~ Inline userSummaryResponse))
         , ("/user/{username}", mempty & get ?~ (mempty
-            & produces ?~ MimeList ["application/json"]
             & parameters .~ [ Inline $ mempty
                 & name .~ "username"
                 & required ?~ True
-                & schema .~ ParamOther (mempty
-                    & in_ .~ ParamPath
-                    & paramSchema .~ usernameParamSchema) ]
+                & in_ .~ ParamPath
+                & schema ?~ Inline usernameParamSchema ]
             & at 200 ?~ Inline userDetailedResponse))
         , ("/packages", mempty & get ?~ (mempty
-            & produces ?~ MimeList ["application/json"]
             & at 200 ?~ Inline packagesResponse))
         ]
 
