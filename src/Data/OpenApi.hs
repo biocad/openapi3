@@ -56,7 +56,7 @@ module Data.OpenApi (
   TagName,
 
   -- ** Types and formats
-  SwaggerType(..),
+  OpenApiType(..),
   Format,
   Definitions,
   Style(..),
@@ -194,7 +194,7 @@ import Data.OpenApi.Internal
 --
 -- >>> :{
 -- BSL.putStrLn $ encode $ (mempty :: OpenApi)
---   & components . schemas .~ [ ("User", mempty & type_ ?~ SwaggerString) ]
+--   & components . schemas .~ [ ("User", mempty & type_ ?~ OpenApiString) ]
 --   & paths .~
 --     [ ("/user", mempty & get ?~ (mempty
 --         & at 200 ?~ ("OK" & _Inline.content.at "application/json" ?~ (mempty & schema ?~ Ref (Reference "User")))
@@ -216,7 +216,7 @@ import Data.OpenApi.Internal
 -- {"description":"No content"}
 -- >>> :{
 -- BSL.putStrLn $ encode $ (mempty :: Schema)
---   & type_       ?~ SwaggerBoolean
+--   & type_       ?~ OpenApiBoolean
 --   & description ?~ "To be or not to be"
 -- :}
 -- {"type":"boolean","description":"To be or not to be"}
@@ -244,7 +244,7 @@ import Data.OpenApi.Internal
 -- @'ParamSchema'@ and @'Schema'@ are the two core types for data model specification.
 --
 -- @'ParamSchema' t@ specifies all the common properties, available for every data schema.
--- The @t@ parameter imposes some restrictions on @type@ and @items@ properties (see @'SwaggerType'@ and @'SwaggerItems'@).
+-- The @t@ parameter imposes some restrictions on @type@ and @items@ properties (see @'OpenApiType'@ and @'SwaggerItems'@).
 --
 -- @'Schema'@ is used for request and response bodies and allows specifying objects
 -- with properties in addition to what @'ParamSchema'@ provides.

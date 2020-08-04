@@ -39,21 +39,21 @@ schemaGen defns schema =
           [ inferredType ] -> schemaGen defns (schema & type_ ?~ inferredType)
           -- Gen is not MonadFail
           _ -> error "unable to infer schema type"
-      Just SwaggerBoolean -> Bool <$> elements [True, False]
-      Just SwaggerNull    -> pure Null
-      Just SwaggerNumber
+      Just OpenApiBoolean -> Bool <$> elements [True, False]
+      Just OpenApiNull    -> pure Null
+      Just OpenApiNumber
         | Just min <- schema ^. minimum_
         , Just max <- schema ^. maximum_ ->
             Number . fromFloatDigits <$>
                    choose (toRealFloat min, toRealFloat max :: Double)
         | otherwise -> Number .fromFloatDigits <$> (arbitrary :: Gen Double)
-      Just SwaggerInteger
+      Just OpenApiInteger
         | Just min <- schema ^. minimum_
         , Just max <- schema ^. maximum_ ->
             Number . fromInteger <$>
                    choose (truncate min, truncate max)
         | otherwise -> Number . fromInteger <$> arbitrary
-      Just SwaggerArray
+      Just OpenApiArray
         | Just 0 <- schema ^. maxLength -> pure $ Array V.empty
         | Just items <- schema ^. items ->
             case items of
@@ -68,14 +68,14 @@ schemaGen defns schema =
               SwaggerItemsArray refs ->
                   let itemGens = schemaGen defns . dereference defns <$> refs
                   in fmap (Array . V.fromList) $ sequence itemGens
-      Just SwaggerString -> do
+      Just OpenApiString -> do
         size <- getSize
         let minLength' = fromMaybe 0 $ fromInteger <$> schema ^. minLength
         let maxLength' = fromMaybe size $ fromInteger <$> schema ^. maxLength
         length <- choose (minLength', max minLength' maxLength')
         str <- vectorOf length arbitrary
         return . String $ T.pack str
-      Just SwaggerObject -> do
+      Just OpenApiObject -> do
           size <- getSize
           let props = dereference defns <$> schema ^. properties
               reqKeys = S.fromList $ schema ^. required

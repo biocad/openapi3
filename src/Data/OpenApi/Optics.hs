@@ -23,7 +23,7 @@
 --
 -- >>> :{
 -- BSL.putStrLn $ encode $ (mempty :: OpenApi)
---   & #components % #schemas .~ [ ("User", mempty & #type ?~ SwaggerString) ]
+--   & #components % #schemas .~ [ ("User", mempty & #type ?~ OpenApiString) ]
 --   & #paths .~
 --     [ ("/user", mempty & #get ?~ (mempty
 --         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (Reference "User")))
@@ -40,7 +40,7 @@
 -- {"description":"No content"}
 -- >>> :{
 -- BSL.putStrLn $ encode $ (mempty :: Schema)
---   & #type        ?~ SwaggerBoolean
+--   & #type        ?~ OpenApiBoolean
 --   & #description ?~ "To be or not to be"
 -- :}
 -- {"type":"boolean","description":"To be or not to be"}
@@ -155,8 +155,8 @@ instance At   Operation where
 -- #type
 
 instance
-  ( a ~ Maybe SwaggerType
-  , b ~ Maybe SwaggerType
+  ( a ~ Maybe OpenApiType
+  , b ~ Maybe OpenApiType
   ) => LabelOptic "type" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #type
   {-# INLINE labelOptic #-}

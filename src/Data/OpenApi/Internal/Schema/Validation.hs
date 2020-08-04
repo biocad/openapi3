@@ -423,10 +423,10 @@ validateEnum val = do
 -- This is like 'inferParamSchemaTypes', but also works for objects:
 --
 -- >>> inferSchemaTypes <$> decode "{\"minProperties\": 1}"
--- Just [SwaggerObject]
-inferSchemaTypes :: Schema -> [SwaggerType]
+-- Just [OpenApiObject]
+inferSchemaTypes :: Schema -> [OpenApiType]
 inferSchemaTypes sch = inferParamSchemaTypes sch ++
-  [ SwaggerObject | any ($ sch)
+  [ OpenApiObject | any ($ sch)
        [ has (additionalProperties._Just)
        , has (maxProperties._Just)
        , has (minProperties._Just)
@@ -436,30 +436,30 @@ inferSchemaTypes sch = inferParamSchemaTypes sch ++
 -- | Infer schema type based on used properties.
 --
 -- >>> inferSchemaTypes <$> decode "{\"minLength\": 2}"
--- Just [SwaggerString]
+-- Just [OpenApiString]
 --
 -- >>> inferSchemaTypes <$> decode "{\"maxItems\": 0}"
--- Just [SwaggerArray]
+-- Just [OpenApiArray]
 --
--- From numeric properties 'SwaggerInteger' type is inferred.
--- If you want 'SwaggerNumber' instead, you must specify it explicitly.
+-- From numeric properties 'OpenApiInteger' type is inferred.
+-- If you want 'OpenApiNumber' instead, you must specify it explicitly.
 --
 -- >>> inferSchemaTypes <$> decode "{\"minimum\": 1}"
--- Just [SwaggerInteger]
-inferParamSchemaTypes :: Schema -> [SwaggerType]
+-- Just [OpenApiInteger]
+inferParamSchemaTypes :: Schema -> [OpenApiType]
 inferParamSchemaTypes sch = concat
-  [ [ SwaggerArray | any ($ sch)
+  [ [ OpenApiArray | any ($ sch)
         [ has (items._Just)
         , has (maxItems._Just)
         , has (minItems._Just)
         , has (uniqueItems._Just) ] ]
-  , [ SwaggerInteger | any ($ sch)
+  , [ OpenApiInteger | any ($ sch)
         [ has (exclusiveMaximum._Just)
         , has (exclusiveMinimum._Just)
         , has (maximum_._Just)
         , has (minimum_._Just)
         , has (multipleOf._Just) ] ]
-  , [ SwaggerString | any ($ sch)
+  , [ OpenApiString | any ($ sch)
         [ has (maxLength._Just)
         , has (minLength._Just)
         , has (pattern._Just) ] ]
@@ -483,13 +483,13 @@ validateSchemaType val = withSchema $ \sch ->
 
     _ ->
       case (sch ^. type_, val) of
-        (Just SwaggerNull,    Null)       -> valid
-        (Just SwaggerBoolean, Bool _)     -> valid
-        (Just SwaggerInteger, Number n)   -> validateInteger n
-        (Just SwaggerNumber,  Number n)   -> validateNumber n
-        (Just SwaggerString,  String s)   -> validateString s
-        (Just SwaggerArray,   Array xs)   -> validateArray xs
-        (Just SwaggerObject,  Object o)   -> validateObject o
+        (Just OpenApiNull,    Null)       -> valid
+        (Just OpenApiBoolean, Bool _)     -> valid
+        (Just OpenApiInteger, Number n)   -> validateInteger n
+        (Just OpenApiNumber,  Number n)   -> validateNumber n
+        (Just OpenApiString,  String s)   -> validateString s
+        (Just OpenApiArray,   Array xs)   -> validateArray xs
+        (Just OpenApiObject,  Object o)   -> validateObject o
         (Nothing, Null)                   -> valid
         (Nothing, Bool _)                 -> valid
         -- Number by default
@@ -502,11 +502,11 @@ validateSchemaType val = withSchema $ \sch ->
 validateParamSchemaType :: Value -> Validation Schema ()
 validateParamSchemaType val = withSchema $ \sch ->
   case (sch ^. type_, val) of
-    (Just SwaggerBoolean, Bool _)     -> valid
-    (Just SwaggerInteger, Number n)   -> validateInteger n
-    (Just SwaggerNumber,  Number n)   -> validateNumber n
-    (Just SwaggerString,  String s)   -> validateString s
-    (Just SwaggerArray,   Array xs)   -> validateArray xs
+    (Just OpenApiBoolean, Bool _)     -> valid
+    (Just OpenApiInteger, Number n)   -> validateInteger n
+    (Just OpenApiNumber,  Number n)   -> validateNumber n
+    (Just OpenApiString,  String s)   -> validateString s
+    (Just OpenApiArray,   Array xs)   -> validateArray xs
     (Nothing, Bool _)                 -> valid
     -- Number by default
     (Nothing, Number n)               -> validateNumber n
@@ -514,11 +514,11 @@ validateParamSchemaType val = withSchema $ \sch ->
     (Nothing, Array xs)               -> validateArray xs
     bad -> invalid $ "expected JSON value of type " ++ showType bad
 
-showType :: (Maybe SwaggerType, Value) -> String
+showType :: (Maybe OpenApiType, Value) -> String
 showType (Just ty, _)        = show ty
-showType (Nothing, Null)     = "SwaggerNull"
-showType (Nothing, Bool _)   = "SwaggerBoolean"
-showType (Nothing, Number _) = "SwaggerNumber"
-showType (Nothing, String _) = "SwaggerString"
-showType (Nothing, Array _)  = "SwaggerArray"
-showType (Nothing, Object _) = "SwaggerObject"
+showType (Nothing, Null)     = "OpenApiNull"
+showType (Nothing, Bool _)   = "OpenApiBoolean"
+showType (Nothing, Number _) = "OpenApiNumber"
+showType (Nothing, String _) = "OpenApiString"
+showType (Nothing, Array _)  = "OpenApiArray"
+showType (Nothing, Object _) = "OpenApiObject"

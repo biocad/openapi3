@@ -571,7 +571,7 @@ data Link = Link
   , _linkServer :: Maybe Server
   } deriving (Eq, Show, Generic, Typeable, Data)
 
--- | Items for @'SwaggerArray'@ schemas.
+-- | Items for @'OpenApiArray'@ schemas.
 --
 -- __Warning__: OpenAPI 3.0 does not support tuple arrays. However, OpenAPI 3.1 will, as
 -- it will incorporate Json Schema mostly verbatim.
@@ -584,14 +584,14 @@ data SwaggerItems where
   SwaggerItemsArray     :: [Referenced Schema] -> SwaggerItems
   deriving (Eq, Show, Typeable, Data)
 
-data SwaggerType where
-  SwaggerString   :: SwaggerType
-  SwaggerNumber   :: SwaggerType
-  SwaggerInteger  :: SwaggerType
-  SwaggerBoolean  :: SwaggerType
-  SwaggerArray    :: SwaggerType
-  SwaggerNull     :: SwaggerType
-  SwaggerObject   :: SwaggerType
+data OpenApiType where
+  OpenApiString   :: OpenApiType
+  OpenApiNumber   :: OpenApiType
+  OpenApiInteger  :: OpenApiType
+  OpenApiBoolean  :: OpenApiType
+  OpenApiArray    :: OpenApiType
+  OpenApiNull     :: OpenApiType
+  OpenApiObject   :: OpenApiType
   deriving (Eq, Show, Typeable, Generic, Data)
 
 data ParamLocation
@@ -643,7 +643,7 @@ data Schema = Schema
     -- Unlike JSON Schema this value MUST conform to the defined type for this parameter.
     _schemaDefault :: Maybe Value
 
-  , _schemaType :: Maybe SwaggerType
+  , _schemaType :: Maybe OpenApiType
   , _schemaFormat :: Maybe Format
   , _schemaItems :: Maybe SwaggerItems
   , _schemaMaximum :: Maybe Scientific
@@ -1085,8 +1085,8 @@ instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
 instance SwaggerMonoid MimeList
 deriving instance SwaggerMonoid URL
 
-instance SwaggerMonoid SwaggerType where
-  swaggerMempty = SwaggerString
+instance SwaggerMonoid OpenApiType where
+  swaggerMempty = OpenApiString
   swaggerMappend _ y = y
 
 instance SwaggerMonoid ParamLocation where
@@ -1109,7 +1109,7 @@ instance Monoid a => SwaggerMonoid (Referenced a) where
 instance ToJSON Style where
   toJSON = genericToJSON (jsonPrefix "Style")
 
-instance ToJSON SwaggerType where
+instance ToJSON OpenApiType where
   toJSON = genericToJSON (jsonPrefix "Swagger")
 
 instance ToJSON ParamLocation where
@@ -1164,7 +1164,7 @@ instance ToJSON OAuth2AuthorizationCodeFlow where
 instance FromJSON Style where
   parseJSON = genericParseJSON (jsonPrefix "Style")
 
-instance FromJSON SwaggerType where
+instance FromJSON OpenApiType where
   parseJSON = genericParseJSON (jsonPrefix "Swagger")
 
 instance FromJSON ParamLocation where
@@ -1545,7 +1545,7 @@ instance AesonDefaultValue OAuth2AuthorizationCodeFlow
 instance AesonDefaultValue p => AesonDefaultValue (OAuth2Flow p)
 instance AesonDefaultValue Responses
 instance AesonDefaultValue SecuritySchemeType
-instance AesonDefaultValue SwaggerType
+instance AesonDefaultValue OpenApiType
 instance AesonDefaultValue MimeList where defaultValue = Just mempty
 instance AesonDefaultValue Info
 instance AesonDefaultValue ParamLocation

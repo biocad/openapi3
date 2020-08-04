@@ -99,7 +99,7 @@ instance At   Responses where at n = responses . at n
 instance Ixed Operation where ix n = responses . ix n
 instance At   Operation where at n = responses . at n
 
-instance HasType NamedSchema (Maybe SwaggerType) where type_ = schema.type_
+instance HasType NamedSchema (Maybe OpenApiType) where type_ = schema.type_
 
 -- OVERLAPPABLE instances
 
