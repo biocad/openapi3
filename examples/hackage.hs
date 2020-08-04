@@ -47,12 +47,12 @@ data UserDetailed = UserDetailed
 newtype Package = Package { packageName :: Text }
   deriving (Generic, ToSchema)
 
-hackageSwagger :: Swagger
+hackageSwagger :: OpenApi
 hackageSwagger = spec & components.schemas .~ defs
   where
     (defs, spec) = runDeclare declareHackageSwagger mempty
 
-declareHackageSwagger :: Declare (Definitions Schema) Swagger
+declareHackageSwagger :: Declare (Definitions Schema) OpenApi
 declareHackageSwagger = do
   -- param schemas
   let usernameParamSchema = toParamSchema (Proxy :: Proxy Username)

@@ -37,7 +37,7 @@ module Data.OpenApi (
   module Data.OpenApi.Schema.Validation,
 
   -- * Swagger specification
-  Swagger(..),
+  OpenApi(..),
   Server(..),
   ServerVariable(..),
   Components(..),
@@ -152,7 +152,7 @@ import Data.OpenApi.Internal
 --
 -- In this library you can use @'mempty'@ for a default/empty value. For instance:
 --
--- >>> BSL.putStrLn $ encode (mempty :: Swagger)
+-- >>> BSL.putStrLn $ encode (mempty :: OpenApi)
 -- {"openapi":"3.0.0","info":{"version":"","title":""},"components":{}}
 --
 -- As you can see some spec properties (e.g. @"version"@) are there even when the spec is empty.
@@ -173,14 +173,14 @@ import Data.OpenApi.Internal
 --
 -- @
 -- \-\- /account subAPI specification
--- accountAPI :: Swagger
+-- accountAPI :: OpenApi
 --
 -- \-\- /task subAPI specification
--- taskAPI :: Swagger
+-- taskAPI :: OpenApi
 --
 -- \-\- while API specification is just a combination
 -- \-\- of subAPIs' specifications
--- api :: Swagger
+-- api :: OpenApi
 -- api = accountAPI <> taskAPI
 -- @
 
@@ -193,7 +193,7 @@ import Data.OpenApi.Internal
 -- make it fairly simple to construct/modify any part of the specification:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Swagger)
+-- BSL.putStrLn $ encode $ (mempty :: OpenApi)
 --   & components . schemas .~ [ ("User", mempty & type_ ?~ SwaggerString) ]
 --   & paths .~
 --     [ ("/user", mempty & get ?~ (mempty

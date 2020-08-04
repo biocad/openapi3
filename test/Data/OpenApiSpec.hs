@@ -42,9 +42,9 @@ spec = do
     context "Todo Example" $ swaggerExample <=> swaggerExampleJSON
     context "PetStore Example" $ do
       it "decodes successfully" $ do
-        fromJSON petstoreExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: Swagger) -> True; _ -> False)
+        fromJSON petstoreExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: OpenApi) -> True; _ -> False)
       it "roundtrips: fmap toJSON . fromJSON" $ do
-        (toJSON :: Swagger -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
+        (toJSON :: OpenApi -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
 
 main :: IO ()
 main = hspec spec
@@ -531,7 +531,7 @@ oAuth2SecurityDefinitionsExampleJSON = [aesonQQ|
 -- Swagger object
 -- =======================================================================
 
-emptyPathsFieldExample :: Swagger
+emptyPathsFieldExample :: OpenApi
 emptyPathsFieldExample = mempty
 
 emptyPathsFieldExampleJSON :: Value
@@ -544,7 +544,7 @@ emptyPathsFieldExampleJSON = [aesonQQ|
 }
 |]
 
-swaggerExample :: Swagger
+swaggerExample :: OpenApi
 swaggerExample = mempty
   -- & basePath ?~ "/"
   -- & schemes ?~ [Http]

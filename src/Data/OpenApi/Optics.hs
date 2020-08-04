@@ -22,7 +22,7 @@
 -- Example from the "Data.OpenApi" module using @optics@:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Swagger)
+-- BSL.putStrLn $ encode $ (mempty :: OpenApi)
 --   & #components % #schemas .~ [ ("User", mempty & #type ?~ SwaggerString) ]
 --   & #paths .~
 --     [ ("/user", mempty & #get ?~ (mempty
@@ -65,7 +65,7 @@ import Optics.TH
 
 -- Lenses
 
-makeFieldLabels ''Swagger
+makeFieldLabels ''OpenApi
 makeFieldLabels ''Components
 makeFieldLabels ''Server
 makeFieldLabels ''ServerVariable

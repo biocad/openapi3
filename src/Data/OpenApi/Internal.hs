@@ -65,38 +65,38 @@ import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding)
 type Definitions = InsOrdHashMap Text
 
 -- | This is the root document object for the API specification.
-data Swagger = Swagger
+data OpenApi = OpenApi
   { -- | Provides metadata about the API.
     -- The metadata can be used by the clients if needed.
-    _swaggerInfo :: Info
+    _openApiInfo :: Info
 
     -- | An array of Server Objects, which provide connectivity information
     -- to a target server. If the servers property is not provided, or is an empty array,
     -- the default value would be a 'Server' object with a url value of @/@.
-  , _swaggerServers :: [Server]
+  , _openApiServers :: [Server]
 
     -- | The available paths and operations for the API.
-  , _swaggerPaths :: InsOrdHashMap FilePath PathItem
+  , _openApiPaths :: InsOrdHashMap FilePath PathItem
 
     -- | An element to hold various schemas for the specification.
-  , _swaggerComponents :: Components
+  , _openApiComponents :: Components
 
     -- | A declaration of which security mechanisms can be used across the API.
     -- The list of values includes alternative security requirement objects that can be used.
     -- Only one of the security requirement objects need to be satisfied to authorize a request.
     -- Individual operations can override this definition.
     -- To make security optional, an empty security requirement can be included in the array.
-  , _swaggerSecurity :: [SecurityRequirement]
+  , _openApiSecurity :: [SecurityRequirement]
 
     -- | A list of tags used by the specification with additional metadata.
     -- The order of the tags can be used to reflect on their order by the parsing tools.
     -- Not all tags that are used by the 'Operation' Object must be declared.
     -- The tags that are not declared MAY be organized randomly or based on the tools' logic.
     -- Each tag name in the list MUST be unique.
-  , _swaggerTags :: InsOrdHashSet Tag
+  , _openApiTags :: InsOrdHashSet Tag
 
     -- | Additional external documentation.
-  , _swaggerExternalDocs :: Maybe ExternalDocs
+  , _openApiExternalDocs :: Maybe ExternalDocs
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | The object provides metadata about the API.
@@ -936,7 +936,7 @@ deriveGeneric ''MediaTypeObject
 deriveGeneric ''Responses
 deriveGeneric ''SecurityScheme
 deriveGeneric ''Schema
-deriveGeneric ''Swagger
+deriveGeneric ''OpenApi
 deriveGeneric ''Example
 deriveGeneric ''Encoding
 deriveGeneric ''Link
@@ -945,9 +945,9 @@ deriveGeneric ''Link
 -- Monoid instances
 -- =======================================================================
 
-instance Semigroup Swagger where
+instance Semigroup OpenApi where
   (<>) = genericMappend
-instance Monoid Swagger where
+instance Monoid OpenApi where
   mempty = genericMempty
   mappend = (<>)
 
@@ -1243,9 +1243,9 @@ instance ToJSON SecuritySchemeType where
     , "openIdConnectUrl" .= url
     ]
 
-instance ToJSON Swagger where
+instance ToJSON OpenApi where
   toJSON a = sopSwaggerGenericToJSON a &
-    if InsOrdHashMap.null (_swaggerPaths a)
+    if InsOrdHashMap.null (_openApiPaths a)
     then (<+> object ["paths" .= object []])
     else id
   toEncoding = sopSwaggerGenericToEncoding
@@ -1386,7 +1386,7 @@ instance FromJSON SecuritySchemeType where
       _ -> empty
   parseJSON _ = empty
 
-instance FromJSON Swagger where
+instance FromJSON OpenApi where
   parseJSON = sopSwaggerGenericParseJSON
 
 instance FromJSON Server where
@@ -1526,7 +1526,7 @@ instance HasSwaggerAesonOptions SecurityScheme where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject ?~ "type"
 instance HasSwaggerAesonOptions Schema where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject ?~ "paramSchema"
-instance HasSwaggerAesonOptions Swagger where
+instance HasSwaggerAesonOptions OpenApi where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoAdditionalPairs .~ [("openapi", "3.0.0")]
 instance HasSwaggerAesonOptions Example where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "example"
