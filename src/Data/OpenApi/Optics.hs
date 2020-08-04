@@ -22,8 +22,8 @@
 -- Example from the "Data.OpenApi" module using @optics@:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Swagger)
---   & #components % #schemas .~ [ ("User", mempty & #type ?~ SwaggerString) ]
+-- BSL.putStrLn $ encode $ (mempty :: OpenApi)
+--   & #components % #schemas .~ [ ("User", mempty & #type ?~ OpenApiString) ]
 --   & #paths .~
 --     [ ("/user", mempty & #get ?~ (mempty
 --         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (Reference "User")))
@@ -40,7 +40,7 @@
 -- {"description":"No content"}
 -- >>> :{
 -- BSL.putStrLn $ encode $ (mempty :: Schema)
---   & #type        ?~ SwaggerBoolean
+--   & #type        ?~ OpenApiBoolean
 --   & #description ?~ "To be or not to be"
 -- :}
 -- {"type":"boolean","description":"To be or not to be"}
@@ -65,7 +65,7 @@ import Optics.TH
 
 -- Lenses
 
-makeFieldLabels ''Swagger
+makeFieldLabels ''OpenApi
 makeFieldLabels ''Components
 makeFieldLabels ''Server
 makeFieldLabels ''ServerVariable
@@ -103,30 +103,30 @@ makeFieldLabels ''Link
 makePrismLabels ''SecuritySchemeType
 makePrismLabels ''Referenced
 
--- SwaggerItems prisms
+-- OpenApiItems prisms
 
 instance
   ( a ~ [Referenced Schema]
   , b ~ [Referenced Schema]
-  ) => LabelOptic "_SwaggerItemsArray"
+  ) => LabelOptic "_OpenApiItemsArray"
          A_Review
-         SwaggerItems
-         SwaggerItems
+         OpenApiItems
+         OpenApiItems
          a
          b where
-  labelOptic = unto (\x -> SwaggerItemsArray x)
+  labelOptic = unto (\x -> OpenApiItemsArray x)
   {-# INLINE labelOptic #-}
 
 instance
   ( a ~ Referenced Schema
   , b ~ Referenced Schema
-  ) => LabelOptic "_SwaggerItemsObject"
+  ) => LabelOptic "_OpenApiItemsObject"
          A_Review
-         SwaggerItems
-         SwaggerItems
+         OpenApiItems
+         OpenApiItems
          a
          b where
-  labelOptic = unto (\x -> SwaggerItemsObject x)
+  labelOptic = unto (\x -> OpenApiItemsObject x)
   {-# INLINE labelOptic #-}
 
 -- =============================================================
@@ -155,8 +155,8 @@ instance At   Operation where
 -- #type
 
 instance
-  ( a ~ Maybe SwaggerType
-  , b ~ Maybe SwaggerType
+  ( a ~ Maybe OpenApiType
+  , b ~ Maybe OpenApiType
   ) => LabelOptic "type" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #type
   {-# INLINE labelOptic #-}
@@ -180,8 +180,8 @@ instance
 -- #items
 
 instance
-  ( a ~ Maybe SwaggerItems
-  , b ~ Maybe SwaggerItems
+  ( a ~ Maybe OpenApiItems
+  , b ~ Maybe OpenApiItems
   ) => LabelOptic "items" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #items
   {-# INLINE labelOptic #-}

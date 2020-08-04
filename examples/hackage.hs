@@ -27,7 +27,7 @@ instance ToSchema UserSummary where
     usernameSchema <- declareSchemaRef (Proxy :: Proxy Username)
     useridSchema   <- declareSchemaRef (Proxy :: Proxy Int)
     return $ NamedSchema (Just "UserSummary") $ mempty
-      & type_ ?~ SwaggerObject
+      & type_ ?~ OpenApiObject
       & properties .~
           [ ("summaryUsername", usernameSchema )
           , ("summaryUserid"  , useridSchema   )
@@ -47,13 +47,13 @@ data UserDetailed = UserDetailed
 newtype Package = Package { packageName :: Text }
   deriving (Generic, ToSchema)
 
-hackageSwagger :: Swagger
-hackageSwagger = spec & components.schemas .~ defs
+hackageOpenApi :: OpenApi
+hackageOpenApi = spec & components.schemas .~ defs
   where
-    (defs, spec) = runDeclare declareHackageSwagger mempty
+    (defs, spec) = runDeclare declareHackageOpenApi mempty
 
-declareHackageSwagger :: Declare (Definitions Schema) Swagger
-declareHackageSwagger = do
+declareHackageOpenApi :: Declare (Definitions Schema) OpenApi
+declareHackageOpenApi = do
   -- param schemas
   let usernameParamSchema = toParamSchema (Proxy :: Proxy Username)
 
@@ -78,5 +78,5 @@ declareHackageSwagger = do
         ]
 
 main :: IO ()
-main = putStrLn . read . show . encode $ hackageSwagger
+main = putStrLn . read . show . encode $ hackageOpenApi
 

@@ -277,7 +277,7 @@ instance ToJSON FreeForm where
 
 instance ToSchema FreeForm where
   declareNamedSchema _ = pure $ NamedSchema (Just $ T.pack "FreeForm") $ mempty
-    & type_ ?~ SwaggerObject
+    & type_ ?~ OpenApiObject
     & additionalProperties ?~ AdditionalPropertiesAllowed True
 
 instance Arbitrary FreeForm where

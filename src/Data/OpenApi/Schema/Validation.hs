@@ -71,11 +71,11 @@ import Data.OpenApi.Internal.Schema.Validation
 -- generally fails for @null@ JSON:
 --
 -- >>> validateToJSON (Nothing :: Maybe String)
--- ["expected JSON value of type SwaggerString"]
+-- ["expected JSON value of type OpenApiString"]
 -- >>> validateToJSON ([Just "hello", Nothing] :: [Maybe String])
--- ["expected JSON value of type SwaggerString"]
+-- ["expected JSON value of type OpenApiString"]
 -- >>> validateToJSON (123, Nothing :: Maybe String)
--- ["expected JSON value of type SwaggerString"]
+-- ["expected JSON value of type OpenApiString"]
 --
 -- However, when @'Maybe' a@ is a type of a record field,
 -- validation takes @'required'@ property of the @'Schema'@

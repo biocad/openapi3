@@ -65,38 +65,38 @@ import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding)
 type Definitions = InsOrdHashMap Text
 
 -- | This is the root document object for the API specification.
-data Swagger = Swagger
+data OpenApi = OpenApi
   { -- | Provides metadata about the API.
     -- The metadata can be used by the clients if needed.
-    _swaggerInfo :: Info
+    _openApiInfo :: Info
 
     -- | An array of Server Objects, which provide connectivity information
     -- to a target server. If the servers property is not provided, or is an empty array,
     -- the default value would be a 'Server' object with a url value of @/@.
-  , _swaggerServers :: [Server]
+  , _openApiServers :: [Server]
 
     -- | The available paths and operations for the API.
-  , _swaggerPaths :: InsOrdHashMap FilePath PathItem
+  , _openApiPaths :: InsOrdHashMap FilePath PathItem
 
     -- | An element to hold various schemas for the specification.
-  , _swaggerComponents :: Components
+  , _openApiComponents :: Components
 
     -- | A declaration of which security mechanisms can be used across the API.
     -- The list of values includes alternative security requirement objects that can be used.
     -- Only one of the security requirement objects need to be satisfied to authorize a request.
     -- Individual operations can override this definition.
     -- To make security optional, an empty security requirement can be included in the array.
-  , _swaggerSecurity :: [SecurityRequirement]
+  , _openApiSecurity :: [SecurityRequirement]
 
     -- | A list of tags used by the specification with additional metadata.
     -- The order of the tags can be used to reflect on their order by the parsing tools.
     -- Not all tags that are used by the 'Operation' Object must be declared.
     -- The tags that are not declared MAY be organized randomly or based on the tools' logic.
     -- Each tag name in the list MUST be unique.
-  , _swaggerTags :: InsOrdHashSet Tag
+  , _openApiTags :: InsOrdHashSet Tag
 
     -- | Additional external documentation.
-  , _swaggerExternalDocs :: Maybe ExternalDocs
+  , _openApiExternalDocs :: Maybe ExternalDocs
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | The object provides metadata about the API.
@@ -571,27 +571,27 @@ data Link = Link
   , _linkServer :: Maybe Server
   } deriving (Eq, Show, Generic, Typeable, Data)
 
--- | Items for @'SwaggerArray'@ schemas.
+-- | Items for @'OpenApiArray'@ schemas.
 --
 -- __Warning__: OpenAPI 3.0 does not support tuple arrays. However, OpenAPI 3.1 will, as
 -- it will incorporate Json Schema mostly verbatim.
 --
--- @'SwaggerItemsObject'@ should be used to specify homogenous array @'Schema'@s.
+-- @'OpenApiItemsObject'@ should be used to specify homogenous array @'Schema'@s.
 --
--- @'SwaggerItemsArray'@ should be used to specify tuple @'Schema'@s.
-data SwaggerItems where
-  SwaggerItemsObject    :: Referenced Schema   -> SwaggerItems
-  SwaggerItemsArray     :: [Referenced Schema] -> SwaggerItems
+-- @'OpenApiItemsArray'@ should be used to specify tuple @'Schema'@s.
+data OpenApiItems where
+  OpenApiItemsObject    :: Referenced Schema   -> OpenApiItems
+  OpenApiItemsArray     :: [Referenced Schema] -> OpenApiItems
   deriving (Eq, Show, Typeable, Data)
 
-data SwaggerType where
-  SwaggerString   :: SwaggerType
-  SwaggerNumber   :: SwaggerType
-  SwaggerInteger  :: SwaggerType
-  SwaggerBoolean  :: SwaggerType
-  SwaggerArray    :: SwaggerType
-  SwaggerNull     :: SwaggerType
-  SwaggerObject   :: SwaggerType
+data OpenApiType where
+  OpenApiString   :: OpenApiType
+  OpenApiNumber   :: OpenApiType
+  OpenApiInteger  :: OpenApiType
+  OpenApiBoolean  :: OpenApiType
+  OpenApiArray    :: OpenApiType
+  OpenApiNull     :: OpenApiType
+  OpenApiObject   :: OpenApiType
   deriving (Eq, Show, Typeable, Generic, Data)
 
 data ParamLocation
@@ -643,9 +643,9 @@ data Schema = Schema
     -- Unlike JSON Schema this value MUST conform to the defined type for this parameter.
     _schemaDefault :: Maybe Value
 
-  , _schemaType :: Maybe SwaggerType
+  , _schemaType :: Maybe OpenApiType
   , _schemaFormat :: Maybe Format
-  , _schemaItems :: Maybe SwaggerItems
+  , _schemaItems :: Maybe OpenApiItems
   , _schemaMaximum :: Maybe Scientific
   , _schemaExclusiveMaximum :: Maybe Bool
   , _schemaMinimum :: Maybe Scientific
@@ -680,7 +680,7 @@ data NamedSchema = NamedSchema
 
 data Xml = Xml
   { -- | Replaces the name of the element/attribute used for the described schema property.
-    -- When defined within the @'SwaggerItems'@ (items), it will affect the name of the individual XML elements within the list.
+    -- When defined within the @'OpenApiItems'@ (items), it will affect the name of the individual XML elements within the list.
     -- When defined alongside type being array (outside the items),
     -- it will affect the wrapping element and only if wrapped is true.
     -- If wrapped is false, it will be ignored.
@@ -936,7 +936,7 @@ deriveGeneric ''MediaTypeObject
 deriveGeneric ''Responses
 deriveGeneric ''SecurityScheme
 deriveGeneric ''Schema
-deriveGeneric ''Swagger
+deriveGeneric ''OpenApi
 deriveGeneric ''Example
 deriveGeneric ''Encoding
 deriveGeneric ''Link
@@ -945,9 +945,9 @@ deriveGeneric ''Link
 -- Monoid instances
 -- =======================================================================
 
-instance Semigroup Swagger where
+instance Semigroup OpenApi where
   (<>) = genericMappend
-instance Monoid Swagger where
+instance Monoid OpenApi where
   mempty = genericMempty
   mappend = (<>)
 
@@ -1085,8 +1085,8 @@ instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
 instance SwaggerMonoid MimeList
 deriving instance SwaggerMonoid URL
 
-instance SwaggerMonoid SwaggerType where
-  swaggerMempty = SwaggerString
+instance SwaggerMonoid OpenApiType where
+  swaggerMempty = OpenApiString
   swaggerMappend _ y = y
 
 instance SwaggerMonoid ParamLocation where
@@ -1109,7 +1109,7 @@ instance Monoid a => SwaggerMonoid (Referenced a) where
 instance ToJSON Style where
   toJSON = genericToJSON (jsonPrefix "Style")
 
-instance ToJSON SwaggerType where
+instance ToJSON OpenApiType where
   toJSON = genericToJSON (jsonPrefix "Swagger")
 
 instance ToJSON ParamLocation where
@@ -1164,7 +1164,7 @@ instance ToJSON OAuth2AuthorizationCodeFlow where
 instance FromJSON Style where
   parseJSON = genericParseJSON (jsonPrefix "Style")
 
-instance FromJSON SwaggerType where
+instance FromJSON OpenApiType where
   parseJSON = genericParseJSON (jsonPrefix "Swagger")
 
 instance FromJSON ParamLocation where
@@ -1243,9 +1243,9 @@ instance ToJSON SecuritySchemeType where
     , "openIdConnectUrl" .= url
     ]
 
-instance ToJSON Swagger where
+instance ToJSON OpenApi where
   toJSON a = sopSwaggerGenericToJSON a &
-    if InsOrdHashMap.null (_swaggerPaths a)
+    if InsOrdHashMap.null (_openApiPaths a)
     then (<+> object ["paths" .= object []])
     else id
   toEncoding = sopSwaggerGenericToEncoding
@@ -1269,17 +1269,17 @@ instance ToJSON Header where
 -- | As for nullary schema for 0-arity type constructors, see
 -- <https://github.com/GetShopTV/swagger2/issues/167>.
 --
--- >>> encode (SwaggerItemsArray [])
+-- >>> encode (OpenApiItemsArray [])
 -- "{\"example\":[],\"items\":{},\"maxItems\":0}"
 --
-instance ToJSON SwaggerItems where
-  toJSON (SwaggerItemsObject x) = object [ "items" .= x ]
-  toJSON (SwaggerItemsArray  []) = object
+instance ToJSON OpenApiItems where
+  toJSON (OpenApiItemsObject x) = object [ "items" .= x ]
+  toJSON (OpenApiItemsArray  []) = object
     [ "items" .= object []
     , "maxItems" .= (0 :: Int)
     , "example" .= Array mempty
     ]
-  toJSON (SwaggerItemsArray  x) = object [ "items" .= x ]
+  toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
 
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
@@ -1386,7 +1386,7 @@ instance FromJSON SecuritySchemeType where
       _ -> empty
   parseJSON _ = empty
 
-instance FromJSON Swagger where
+instance FromJSON OpenApi where
   parseJSON = sopSwaggerGenericParseJSON
 
 instance FromJSON Server where
@@ -1399,7 +1399,7 @@ instance FromJSON Schema where
   parseJSON = fmap nullaryCleanup . sopSwaggerGenericParseJSON
     where nullaryCleanup :: Schema -> Schema
           nullaryCleanup s =
-            if _schemaItems s == Just (SwaggerItemsArray [])
+            if _schemaItems s == Just (OpenApiItemsArray [])
               then s { _schemaExample = Nothing
                      , _schemaMaxItems = Nothing
                      }
@@ -1408,11 +1408,11 @@ instance FromJSON Schema where
 instance FromJSON Header where
   parseJSON = sopSwaggerGenericParseJSON
 
-instance FromJSON SwaggerItems where
+instance FromJSON OpenApiItems where
   parseJSON js@(Object obj)
-      | null obj  = pure $ SwaggerItemsArray [] -- Nullary schema.
-      | otherwise = SwaggerItemsObject <$> parseJSON js
-  parseJSON js@(Array _)  = SwaggerItemsArray  <$> parseJSON js
+      | null obj  = pure $ OpenApiItemsArray [] -- Nullary schema.
+      | otherwise = OpenApiItemsObject <$> parseJSON js
+  parseJSON js@(Array _)  = OpenApiItemsArray  <$> parseJSON js
   parseJSON _ = empty
 
 instance FromJSON Components where
@@ -1526,7 +1526,7 @@ instance HasSwaggerAesonOptions SecurityScheme where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject ?~ "type"
 instance HasSwaggerAesonOptions Schema where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject ?~ "paramSchema"
-instance HasSwaggerAesonOptions Swagger where
+instance HasSwaggerAesonOptions OpenApi where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoAdditionalPairs .~ [("openapi", "3.0.0")]
 instance HasSwaggerAesonOptions Example where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "example"
@@ -1545,7 +1545,7 @@ instance AesonDefaultValue OAuth2AuthorizationCodeFlow
 instance AesonDefaultValue p => AesonDefaultValue (OAuth2Flow p)
 instance AesonDefaultValue Responses
 instance AesonDefaultValue SecuritySchemeType
-instance AesonDefaultValue SwaggerType
+instance AesonDefaultValue OpenApiType
 instance AesonDefaultValue MimeList where defaultValue = Just mempty
 instance AesonDefaultValue Info
 instance AesonDefaultValue ParamLocation

@@ -59,10 +59,10 @@ import qualified Data.HashSet.InsOrd as InsOrdHS
 -- | Prepend path piece to all operations of the spec.
 -- Leading and trailing slashes are trimmed/added automatically.
 --
--- >>> let api = (mempty :: Swagger) & paths .~ [("/info", mempty)]
+-- >>> let api = (mempty :: OpenApi) & paths .~ [("/info", mempty)]
 -- >>> BSL.putStrLn $ encode $ prependPath "user/{user_id}" api ^. paths
 -- {"/user/{user_id}/info":{}}
-prependPath :: FilePath -> Swagger -> Swagger
+prependPath :: FilePath -> OpenApi -> OpenApi
 prependPath path = paths %~ InsOrdHashMap.mapKeys (path </>)
   where
     x </> y = case trim y of
@@ -72,7 +72,7 @@ prependPath path = paths %~ InsOrdHashMap.mapKeys (path </>)
     trim = dropWhile (== '/') . dropWhileEnd (== '/')
 
 -- | All operations of a Swagger spec.
-allOperations :: Traversal' Swagger Operation
+allOperations :: Traversal' OpenApi Operation
 allOperations = paths.traverse.template
 
 -- | @'operationsOf' sub@ will traverse only those operations
@@ -80,13 +80,13 @@ allOperations = paths.traverse.template
 -- by both path and method.
 --
 -- >>> let ok = (mempty :: Operation) & at 200 ?~ "OK"
--- >>> let api = (mempty :: Swagger) & paths .~ [("/user", mempty & get ?~ ok & post ?~ ok)]
--- >>> let sub = (mempty :: Swagger) & paths .~ [("/user", mempty & get ?~ mempty)]
+-- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ ok & post ?~ ok)]
+-- >>> let sub = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
 -- >>> BSL.putStrLn $ encode api
 -- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
 -- >>> BSL.putStrLn $ encode $ api & operationsOf sub . at 404 ?~ "Not found"
 -- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"Not found"},"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
-operationsOf :: Swagger -> Traversal' Swagger Operation
+operationsOf :: OpenApi -> Traversal' OpenApi Operation
 operationsOf sub = paths.itraversed.withIndex.subops
   where
     -- | Traverse operations that correspond to paths and methods of the sub API.
@@ -108,12 +108,12 @@ operationsOf sub = paths.itraversed.withIndex.subops
 -- @
 -- 'applyTags' = 'applyTagsFor' 'allOperations'
 -- @
-applyTags :: [Tag] -> Swagger -> Swagger
+applyTags :: [Tag] -> OpenApi -> OpenApi
 applyTags = applyTagsFor allOperations
 
 -- | Apply tags to a part of Swagger spec and update the global
 -- list of tags.
-applyTagsFor :: Traversal' Swagger Operation -> [Tag] -> Swagger -> Swagger
+applyTagsFor :: Traversal' OpenApi Operation -> [Tag] -> OpenApi -> OpenApi
 applyTagsFor ops ts swag = swag
   & ops . tags %~ (<> InsOrdHS.fromList (map _tagName ts))
   & tags %~ (<> InsOrdHS.fromList ts)
@@ -141,13 +141,13 @@ declareResponse cType proxy = do
 --
 -- Example:
 --
--- >>> let api = (mempty :: Swagger) & paths .~ [("/user", mempty & get ?~ mempty)]
+-- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
 -- >>> let res = declareResponse "application/json" (Proxy :: Proxy Day)
 -- >>> BSL.putStrLn $ encode $ api & setResponse 200 res
 -- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}},"description":""}}}}},"components":{"schemas":{"Day":{"example":"2016-07-22","format":"date","type":"string"}}}}
 --
 -- See also @'setResponseWith'@.
-setResponse :: HttpStatusCode -> Declare (Definitions Schema) Response -> Swagger -> Swagger
+setResponse :: HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi
 setResponse = setResponseFor allOperations
 
 -- | Set or update response for all operations.
@@ -161,7 +161,7 @@ setResponse = setResponseFor allOperations
 -- @
 --
 -- See also @'setResponse'@.
-setResponseWith :: (Response -> Response -> Response) -> HttpStatusCode -> Declare (Definitions Schema) Response -> Swagger -> Swagger
+setResponseWith :: (Response -> Response -> Response) -> HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi
 setResponseWith = setResponseForWith allOperations
 
 -- | Set response for specified operations.
@@ -170,7 +170,7 @@ setResponseWith = setResponseForWith allOperations
 -- If the response already exists it will be overwritten.
 --
 -- See also @'setResponseForWith'@.
-setResponseFor :: Traversal' Swagger Operation -> HttpStatusCode -> Declare (Definitions Schema) Response -> Swagger -> Swagger
+setResponseFor :: Traversal' OpenApi Operation -> HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi
 setResponseFor ops code dres swag = swag
   & components.schemas %~ (<> defs)
   & ops . at code ?~ Inline res
@@ -184,7 +184,7 @@ setResponseFor ops code dres swag = swag
 -- then just the new response is used.
 --
 -- See also @'setResponseFor'@.
-setResponseForWith :: Traversal' Swagger Operation -> (Response -> Response -> Response) -> HttpStatusCode -> Declare (Definitions Schema) Response -> Swagger -> Swagger
+setResponseForWith :: Traversal' OpenApi Operation -> (Response -> Response -> Response) -> HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi
 setResponseForWith ops f code dres swag = swag
   & components.schemas %~ (<> defs)
   & ops . at code %~ Just . Inline . combine
