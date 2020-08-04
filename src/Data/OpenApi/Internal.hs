@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -14,7 +13,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Data.Swagger.Internal where
+module Data.OpenApi.Internal where
 
 import Prelude ()
 import Prelude.Compat
@@ -47,7 +46,7 @@ import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
 import Generics.SOP.TH                  (deriveGeneric)
-import Data.Swagger.Internal.AesonUtils (sopSwaggerGenericToJSON
+import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToJSON
                                         ,sopSwaggerGenericToJSONWithOpts
                                         ,sopSwaggerGenericParseJSON
                                         ,HasSwaggerAesonOptions(..)
@@ -55,8 +54,8 @@ import Data.Swagger.Internal.AesonUtils (sopSwaggerGenericToJSON
                                         ,mkSwaggerAesonOptions
                                         ,saoAdditionalPairs
                                         ,saoSubObject)
-import Data.Swagger.Internal.Utils
-import Data.Swagger.Internal.AesonUtils (sopSwaggerGenericToEncoding)
+import Data.OpenApi.Internal.Utils
+import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding)
 
 -- $setup
 -- >>> :seti -XDataKinds
@@ -433,11 +432,11 @@ mimeListConstr :: Constr
 mimeListConstr = mkConstr mimeListDataType "MimeList" ["getMimeList"] Prefix
 
 mimeListDataType :: DataType
-mimeListDataType = mkDataType "Data.Swagger.MimeList" [mimeListConstr]
+mimeListDataType = mkDataType "Data.OpenApi.MimeList" [mimeListConstr]
 
 instance Data MimeList where
   gunfold k z c = case constrIndex c of
-    1 -> k (z (\xs -> MimeList (map fromString xs)))
+    1 -> k (z (MimeList . map fromString))
     _ -> error $ "Data.Data.gunfold: Constructor " ++ show c ++ " is not of type MimeList."
   toConstr (MimeList _) = mimeListConstr
   dataTypeOf _ = mimeListDataType
@@ -796,17 +795,17 @@ type AuthorizationURL = Text
 -- | The token URL to be used for OAuth2 flow. This SHOULD be in the form of a URL.
 type TokenURL = Text
 
-data OAuth2ImplicitFlow = OAuth2ImplicitFlow
-  { _oAuth2ImplicitFlowAuthorizationUrl :: AuthorizationURL
-  } deriving (Eq, Show, Generic, Data, Typeable)
+newtype OAuth2ImplicitFlow
+  = OAuth2ImplicitFlow {_oAuth2ImplicitFlowAuthorizationUrl :: AuthorizationURL}
+  deriving (Eq, Show, Generic, Data, Typeable)
 
-data OAuth2PasswordFlow = OAuth2PasswordFlow
-  { _oAuth2PasswordFlowTokenUrl :: TokenURL
-  } deriving (Eq, Show, Generic, Data, Typeable)
+newtype OAuth2PasswordFlow
+  = OAuth2PasswordFlow {_oAuth2PasswordFlowTokenUrl :: TokenURL}
+  deriving (Eq, Show, Generic, Data, Typeable)
 
-data OAuth2ClientCredentialsFlow = OAuth2ClientCredentialsFlow
-  { _oAuth2ClientCredentialsFlowTokenUrl :: TokenURL
-  } deriving (Eq, Show, Generic, Data, Typeable)
+newtype OAuth2ClientCredentialsFlow
+  = OAuth2ClientCredentialsFlow {_oAuth2ClientCredentialsFlowTokenUrl :: TokenURL}
+  deriving (Eq, Show, Generic, Data, Typeable)
 
 data OAuth2AuthorizationCodeFlow = OAuth2AuthorizationCodeFlow
   { _oAuth2AuthorizationCodeFlowAuthorizationUrl :: AuthorizationURL
@@ -1420,7 +1419,7 @@ instance FromJSON Components where
   parseJSON = sopSwaggerGenericParseJSON
 
 instance FromJSON MimeList where
-  parseJSON js = (MimeList . map fromString) <$> parseJSON js
+  parseJSON js = MimeList . map fromString <$> parseJSON js
 
 instance FromJSON Param where
   parseJSON = sopSwaggerGenericParseJSON
@@ -1428,7 +1427,7 @@ instance FromJSON Param where
 instance FromJSON Responses where
   parseJSON (Object o) = Responses
     <$> o .:? "default"
-    <*> (parseJSON (Object (HashMap.delete "default" o)))
+    <*> parseJSON (Object (HashMap.delete "default" o))
   parseJSON _ = empty
 
 instance FromJSON Example where

@@ -7,7 +7,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
--- Module:      Data.Swagger.Optics
+-- Module:      Data.OpenApi.Optics
 -- Maintainer:  Andrzej Rybczak <andrzej@rybczak.net>
 -- Stability:   experimental
 --
@@ -19,7 +19,7 @@
 -- >>> :set -XOverloadedLabels
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
 --
--- Example from the "Data.Swagger" module using @optics@:
+-- Example from the "Data.OpenApi" module using @optics@:
 --
 -- >>> :{
 -- BSL.putStrLn $ encode $ (mempty :: Swagger)
@@ -54,11 +54,11 @@
 -- :}
 -- {"responses":{"404":{"description":"Not found"}}}
 --
-module Data.Swagger.Optics () where
+module Data.OpenApi.Optics () where
 
 import Data.Aeson (Value)
 import Data.Scientific (Scientific)
-import Data.Swagger.Internal
+import Data.OpenApi.Internal
 import Data.Text (Text)
 import Optics.Core
 import Optics.TH

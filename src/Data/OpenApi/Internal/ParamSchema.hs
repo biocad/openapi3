@@ -15,7 +15,7 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 -- For TypeErrors
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
-module Data.Swagger.Internal.ParamSchema where
+module Data.OpenApi.Internal.ParamSchema where
 
 import Control.Lens
 import Data.Aeson (ToJSON (..))
@@ -41,9 +41,9 @@ import Data.Word
 import Data.UUID.Types (UUID)
 import Web.Cookie (SetCookie)
 
-import Data.Swagger.Internal
-import Data.Swagger.Lens
-import Data.Swagger.SchemaOptions
+import Data.OpenApi.Internal
+import Data.OpenApi.Lens
+import Data.OpenApi.SchemaOptions
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL

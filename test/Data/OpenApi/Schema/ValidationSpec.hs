@@ -3,7 +3,7 @@
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Data.Swagger.Schema.ValidationSpec where
+module Data.OpenApi.Schema.ValidationSpec where
 
 import           Control.Applicative
 import           Control.Lens                        ((&), (.~), (?~))
@@ -28,8 +28,8 @@ import           Data.Version                        (Version)
 import           Data.Word
 import           GHC.Generics
 
-import           Data.Swagger
-import           Data.Swagger.Declare
+import           Data.OpenApi
+import           Data.OpenApi.Declare
 
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
@@ -190,7 +190,7 @@ instance Arbitrary MyRoseTree where
 data Light = NoLight | LightFreq Double | LightColor Color deriving (Show, Generic)
 
 instance ToSchema Light where
-  declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions { Data.Swagger.sumEncoding = ObjectWithSingleField }
+  declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions { Data.OpenApi.sumEncoding = ObjectWithSingleField }
 
 instance ToJSON Light where
   toJSON = genericToJSON defaultOptions { Data.Aeson.Types.sumEncoding = ObjectWithSingleField }
@@ -215,7 +215,7 @@ instance ToJSON LightTaggedObject where
 
 instance ToSchema LightTaggedObject where
   declareNamedSchema _ =
-    genericDeclareNamedSchema defaultSchemaOptions { Data.Swagger.sumEncoding = defaultTaggedObject } (Proxy :: Proxy Light)
+    genericDeclareNamedSchema defaultSchemaOptions { Data.OpenApi.sumEncoding = defaultTaggedObject } (Proxy :: Proxy Light)
 
 instance Arbitrary LightTaggedObject where
   arbitrary = LightTaggedObject <$> arbitrary
@@ -228,7 +228,7 @@ instance ToJSON LightUntaggedValue where
 
 instance ToSchema LightUntaggedValue where
   declareNamedSchema _ =
-    genericDeclareNamedSchema defaultSchemaOptions { Data.Swagger.sumEncoding = UntaggedValue } (Proxy :: Proxy Light)
+    genericDeclareNamedSchema defaultSchemaOptions { Data.OpenApi.sumEncoding = UntaggedValue } (Proxy :: Proxy Light)
 
 instance Arbitrary LightUntaggedValue where
   arbitrary = LightUntaggedValue <$> arbitrary

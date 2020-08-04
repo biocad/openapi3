@@ -10,18 +10,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
--- Module:      Data.Swagger.Lens
+-- Module:      Data.OpenApi.Lens
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
 -- Lenses and prisms for Swagger.
-module Data.Swagger.Lens where
+module Data.OpenApi.Lens where
 
 import Control.Lens
 import Data.Aeson (Value)
 import Data.Scientific (Scientific)
-import Data.Swagger.Internal
-import Data.Swagger.Internal.Utils
+import Data.OpenApi.Internal
+import Data.OpenApi.Internal.Utils
 import Data.Text (Text)
 
 -- * Classy lenses

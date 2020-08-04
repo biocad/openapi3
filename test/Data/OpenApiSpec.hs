@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
-module Data.SwaggerSpec where
+module Data.OpenApiSpec where
 
 import Prelude ()
 import Prelude.Compat
@@ -15,7 +15,7 @@ import Data.HashMap.Strict (HashMap)
 import qualified Data.HashSet.InsOrd as InsOrdHS
 import Data.Text (Text)
 
-import Data.Swagger
+import Data.OpenApi
 import SpecCommon
 import Test.Hspec hiding (example)
 
@@ -918,7 +918,7 @@ petstoreExampleJSON = [aesonQQ|
 compositionSchemaExample :: Schema
 compositionSchemaExample = mempty
   & type_ ?~ SwaggerObject
-  & Data.Swagger.allOf ?~ [
+  & Data.OpenApi.allOf ?~ [
       Ref (Reference "Other")
     , Inline (mempty
              & type_ ?~ SwaggerObject

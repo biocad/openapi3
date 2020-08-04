@@ -1,11 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
 -- |
--- Module:      Data.Swagger.SchemaOptions
+-- Module:      Data.OpenApi.SchemaOptions
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
 -- Generic deriving options for @'ToParamSchema'@ and @'ToSchema'@.
-module Data.Swagger.SchemaOptions where
+module Data.OpenApi.SchemaOptions where
 
 import qualified Data.Aeson.Types as Aeson
 
