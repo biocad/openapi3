@@ -75,7 +75,7 @@ module Data.OpenApi (
   -- ** Schemas
   Schema(..),
   NamedSchema(..),
-  SwaggerItems(..),
+  OpenApiItems(..),
   Xml(..),
   Pattern,
   AdditionalProperties(..),
@@ -244,7 +244,7 @@ import Data.OpenApi.Internal
 -- @'ParamSchema'@ and @'Schema'@ are the two core types for data model specification.
 --
 -- @'ParamSchema' t@ specifies all the common properties, available for every data schema.
--- The @t@ parameter imposes some restrictions on @type@ and @items@ properties (see @'OpenApiType'@ and @'SwaggerItems'@).
+-- The @t@ parameter imposes some restrictions on @type@ and @items@ properties (see @'OpenApiType'@ and @'OpenApiItems'@).
 --
 -- @'Schema'@ is used for request and response bodies and allows specifying objects
 -- with properties in addition to what @'ParamSchema'@ provides.

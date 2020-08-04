@@ -64,24 +64,24 @@ makePrisms ''SecuritySchemeType
 -- ** 'Referenced' prisms
 makePrisms ''Referenced
 
--- ** 'SwaggerItems' prisms
+-- ** 'OpenApiItems' prisms
 
-_SwaggerItemsArray :: Review SwaggerItems [Referenced Schema]
-_SwaggerItemsArray
-  = unto (\x -> SwaggerItemsArray x)
+_OpenApiItemsArray :: Review OpenApiItems [Referenced Schema]
+_OpenApiItemsArray
+  = unto (\x -> OpenApiItemsArray x)
 {- \x -> case x of
-      SwaggerItemsPrimitive c p -> Left (SwaggerItemsPrimitive c p)
-      SwaggerItemsObject o      -> Left (SwaggerItemsObject o)
-      SwaggerItemsArray a       -> Right a
+      OpenApiItemsPrimitive c p -> Left (OpenApiItemsPrimitive c p)
+      OpenApiItemsObject o      -> Left (OpenApiItemsObject o)
+      OpenApiItemsArray a       -> Right a
 -}
 
-_SwaggerItemsObject :: Review SwaggerItems (Referenced Schema)
-_SwaggerItemsObject
-  = unto (\x -> SwaggerItemsObject x)
+_OpenApiItemsObject :: Review OpenApiItems (Referenced Schema)
+_OpenApiItemsObject
+  = unto (\x -> OpenApiItemsObject x)
 {- \x -> case x of
-      SwaggerItemsPrimitive c p -> Left (SwaggerItemsPrimitive c p)
-      SwaggerItemsObject o      -> Right o
-      SwaggerItemsArray a       -> Left (SwaggerItemsArray a)
+      OpenApiItemsPrimitive c p -> Left (OpenApiItemsPrimitive c p)
+      OpenApiItemsObject o      -> Right o
+      OpenApiItemsArray a       -> Left (OpenApiItemsArray a)
 -}
 
 -- =============================================================
@@ -112,7 +112,7 @@ instance
 instance
   {-# OVERLAPPABLE #-}
   HasSchema s Schema
-  => HasItems s (Maybe SwaggerItems) where
+  => HasItems s (Maybe OpenApiItems) where
   items = schema.items
 
 instance

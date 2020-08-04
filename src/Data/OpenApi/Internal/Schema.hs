@@ -319,8 +319,8 @@ sketchSchema = sketch . toJSON
     go (Array xs) = mempty
       & type_   ?~ OpenApiArray
       & items ?~ case ischema of
-          Just s -> SwaggerItemsObject (Inline s)
-          _      -> SwaggerItemsArray (map Inline ys)
+          Just s -> OpenApiItemsObject (Inline s)
+          _      -> OpenApiItemsArray (map Inline ys)
       where
         ys = map go (V.toList xs)
         allSame = and ((zipWith (==)) ys (tail ys))
@@ -372,7 +372,7 @@ sketchStrictSchema = go . toJSON
       & type_       ?~ OpenApiArray
       & maxItems    ?~ fromIntegral sz
       & minItems    ?~ fromIntegral sz
-      & items       ?~ SwaggerItemsArray (map (Inline . go) (V.toList xs))
+      & items       ?~ OpenApiItemsArray (map (Inline . go) (V.toList xs))
       & uniqueItems ?~ allUnique
       & enum_       ?~ [js]
       where
@@ -396,7 +396,7 @@ instance {-# OVERLAPPABLE #-} ToSchema a => ToSchema [a] where
     ref <- declareSchemaRef (Proxy :: Proxy a)
     return $ unnamed $ mempty
       & type_ ?~ OpenApiArray
-      & items ?~ SwaggerItemsObject ref
+      & items ?~ OpenApiItemsObject ref
 
 instance {-# OVERLAPPING #-} ToSchema String where declareNamedSchema = plain . paramSchemaToSchema
 instance ToSchema Bool    where declareNamedSchema = plain . paramSchemaToSchema
@@ -660,7 +660,7 @@ paramSchemaToSchema = toParamSchema
 nullarySchema :: Schema
 nullarySchema = mempty
   & type_ ?~ OpenApiArray
-  & items ?~ SwaggerItemsArray []
+  & items ?~ OpenApiItemsArray []
 
 gtoNamedSchema :: GToSchema f => SchemaOptions -> Proxy f -> NamedSchema
 gtoNamedSchema opts proxy = undeclare $ gdeclareNamedSchema opts proxy mempty
@@ -690,7 +690,7 @@ instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s 
     | unwrapUnaryRecords opts = fieldSchema
     | otherwise =
         case schema ^. items of
-          Just (SwaggerItemsArray [_]) -> fieldSchema
+          Just (OpenApiItemsArray [_]) -> fieldSchema
           _ -> do
             declare defs
             return (unnamed schema)
@@ -718,10 +718,10 @@ gdeclareSchemaRef opts proxy = do
       return $ Ref (Reference name)
     _ -> Inline <$> gdeclareSchema opts proxy
 
-appendItem :: Referenced Schema -> Maybe SwaggerItems -> Maybe SwaggerItems
-appendItem x Nothing = Just (SwaggerItemsArray [x])
-appendItem x (Just (SwaggerItemsArray xs)) = Just (SwaggerItemsArray (xs ++ [x]))
-appendItem _ _ = error "GToSchema.appendItem: cannot append to SwaggerItemsObject"
+appendItem :: Referenced Schema -> Maybe OpenApiItems -> Maybe OpenApiItems
+appendItem x Nothing = Just (OpenApiItemsArray [x])
+appendItem x (Just (OpenApiItemsArray xs)) = Just (OpenApiItemsArray (xs ++ [x]))
+appendItem _ _ = error "GToSchema.appendItem: cannot append to OpenApiItemsObject"
 
 withFieldSchema :: forall proxy s f. (Selector s, GToSchema f) =>
   SchemaOptions -> proxy s f -> Bool -> Schema -> Declare (Definitions Schema) Schema

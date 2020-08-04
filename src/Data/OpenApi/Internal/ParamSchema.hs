@@ -260,7 +260,7 @@ instance ToParamSchema a => ToParamSchema (Identity a) where toParamSchema _ = t
 instance ToParamSchema a => ToParamSchema [a] where
   toParamSchema _ = mempty
     & type_ ?~ OpenApiArray
-    & items ?~ SwaggerItemsObject (Inline $ toParamSchema (Proxy :: Proxy a))
+    & items ?~ OpenApiItemsObject (Inline $ toParamSchema (Proxy :: Proxy a))
 
 instance ToParamSchema a => ToParamSchema (V.Vector a) where toParamSchema _ = toParamSchema (Proxy :: Proxy [a])
 instance ToParamSchema a => ToParamSchema (VP.Vector a) where toParamSchema _ = toParamSchema (Proxy :: Proxy [a])

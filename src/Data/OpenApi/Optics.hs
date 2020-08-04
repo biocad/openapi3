@@ -103,30 +103,30 @@ makeFieldLabels ''Link
 makePrismLabels ''SecuritySchemeType
 makePrismLabels ''Referenced
 
--- SwaggerItems prisms
+-- OpenApiItems prisms
 
 instance
   ( a ~ [Referenced Schema]
   , b ~ [Referenced Schema]
-  ) => LabelOptic "_SwaggerItemsArray"
+  ) => LabelOptic "_OpenApiItemsArray"
          A_Review
-         SwaggerItems
-         SwaggerItems
+         OpenApiItems
+         OpenApiItems
          a
          b where
-  labelOptic = unto (\x -> SwaggerItemsArray x)
+  labelOptic = unto (\x -> OpenApiItemsArray x)
   {-# INLINE labelOptic #-}
 
 instance
   ( a ~ Referenced Schema
   , b ~ Referenced Schema
-  ) => LabelOptic "_SwaggerItemsObject"
+  ) => LabelOptic "_OpenApiItemsObject"
          A_Review
-         SwaggerItems
-         SwaggerItems
+         OpenApiItems
+         OpenApiItems
          a
          b where
-  labelOptic = unto (\x -> SwaggerItemsObject x)
+  labelOptic = unto (\x -> OpenApiItemsObject x)
   {-# INLINE labelOptic #-}
 
 -- =============================================================
@@ -180,8 +180,8 @@ instance
 -- #items
 
 instance
-  ( a ~ Maybe SwaggerItems
-  , b ~ Maybe SwaggerItems
+  ( a ~ Maybe OpenApiItems
+  , b ~ Maybe OpenApiItems
   ) => LabelOptic "items" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #items
   {-# INLINE labelOptic #-}

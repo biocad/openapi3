@@ -576,12 +576,12 @@ data Link = Link
 -- __Warning__: OpenAPI 3.0 does not support tuple arrays. However, OpenAPI 3.1 will, as
 -- it will incorporate Json Schema mostly verbatim.
 --
--- @'SwaggerItemsObject'@ should be used to specify homogenous array @'Schema'@s.
+-- @'OpenApiItemsObject'@ should be used to specify homogenous array @'Schema'@s.
 --
--- @'SwaggerItemsArray'@ should be used to specify tuple @'Schema'@s.
-data SwaggerItems where
-  SwaggerItemsObject    :: Referenced Schema   -> SwaggerItems
-  SwaggerItemsArray     :: [Referenced Schema] -> SwaggerItems
+-- @'OpenApiItemsArray'@ should be used to specify tuple @'Schema'@s.
+data OpenApiItems where
+  OpenApiItemsObject    :: Referenced Schema   -> OpenApiItems
+  OpenApiItemsArray     :: [Referenced Schema] -> OpenApiItems
   deriving (Eq, Show, Typeable, Data)
 
 data OpenApiType where
@@ -645,7 +645,7 @@ data Schema = Schema
 
   , _schemaType :: Maybe OpenApiType
   , _schemaFormat :: Maybe Format
-  , _schemaItems :: Maybe SwaggerItems
+  , _schemaItems :: Maybe OpenApiItems
   , _schemaMaximum :: Maybe Scientific
   , _schemaExclusiveMaximum :: Maybe Bool
   , _schemaMinimum :: Maybe Scientific
@@ -680,7 +680,7 @@ data NamedSchema = NamedSchema
 
 data Xml = Xml
   { -- | Replaces the name of the element/attribute used for the described schema property.
-    -- When defined within the @'SwaggerItems'@ (items), it will affect the name of the individual XML elements within the list.
+    -- When defined within the @'OpenApiItems'@ (items), it will affect the name of the individual XML elements within the list.
     -- When defined alongside type being array (outside the items),
     -- it will affect the wrapping element and only if wrapped is true.
     -- If wrapped is false, it will be ignored.
@@ -1269,17 +1269,17 @@ instance ToJSON Header where
 -- | As for nullary schema for 0-arity type constructors, see
 -- <https://github.com/GetShopTV/swagger2/issues/167>.
 --
--- >>> encode (SwaggerItemsArray [])
+-- >>> encode (OpenApiItemsArray [])
 -- "{\"example\":[],\"items\":{},\"maxItems\":0}"
 --
-instance ToJSON SwaggerItems where
-  toJSON (SwaggerItemsObject x) = object [ "items" .= x ]
-  toJSON (SwaggerItemsArray  []) = object
+instance ToJSON OpenApiItems where
+  toJSON (OpenApiItemsObject x) = object [ "items" .= x ]
+  toJSON (OpenApiItemsArray  []) = object
     [ "items" .= object []
     , "maxItems" .= (0 :: Int)
     , "example" .= Array mempty
     ]
-  toJSON (SwaggerItemsArray  x) = object [ "items" .= x ]
+  toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
 
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
@@ -1399,7 +1399,7 @@ instance FromJSON Schema where
   parseJSON = fmap nullaryCleanup . sopSwaggerGenericParseJSON
     where nullaryCleanup :: Schema -> Schema
           nullaryCleanup s =
-            if _schemaItems s == Just (SwaggerItemsArray [])
+            if _schemaItems s == Just (OpenApiItemsArray [])
               then s { _schemaExample = Nothing
                      , _schemaMaxItems = Nothing
                      }
@@ -1408,11 +1408,11 @@ instance FromJSON Schema where
 instance FromJSON Header where
   parseJSON = sopSwaggerGenericParseJSON
 
-instance FromJSON SwaggerItems where
+instance FromJSON OpenApiItems where
   parseJSON js@(Object obj)
-      | null obj  = pure $ SwaggerItemsArray [] -- Nullary schema.
-      | otherwise = SwaggerItemsObject <$> parseJSON js
-  parseJSON js@(Array _)  = SwaggerItemsArray  <$> parseJSON js
+      | null obj  = pure $ OpenApiItemsArray [] -- Nullary schema.
+      | otherwise = OpenApiItemsObject <$> parseJSON js
+  parseJSON js@(Array _)  = OpenApiItemsArray  <$> parseJSON js
   parseJSON _ = empty
 
 instance FromJSON Components where

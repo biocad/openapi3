@@ -57,7 +57,7 @@ schemaGen defns schema =
         | Just 0 <- schema ^. maxLength -> pure $ Array V.empty
         | Just items <- schema ^. items ->
             case items of
-              SwaggerItemsObject ref -> do
+              OpenApiItemsObject ref -> do
                   size <- getSize
                   let itemSchema = dereference defns ref
                       minLength' = fromMaybe 0 $ fromInteger <$> schema ^. minItems
@@ -65,7 +65,7 @@ schemaGen defns schema =
                   arrayLength <- choose (minLength', max minLength' maxLength')
                   generatedArray <- vectorOf arrayLength $ schemaGen defns itemSchema
                   return . Array $ V.fromList generatedArray
-              SwaggerItemsArray refs ->
+              OpenApiItemsArray refs ->
                   let itemGens = schemaGen defns . dereference defns <$> refs
                   in fmap (Array . V.fromList) $ sequence itemGens
       Just OpenApiString -> do

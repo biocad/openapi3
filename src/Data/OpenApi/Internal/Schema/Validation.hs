@@ -353,8 +353,8 @@ validateArray xs = do
       invalid ("array is too short (size should be >=" ++ show n ++ ")")
 
   check items $ \case
-    SwaggerItemsObject itemSchema      -> traverse_ (validateWithSchemaRef itemSchema) xs
-    SwaggerItemsArray itemSchemas -> do
+    OpenApiItemsObject itemSchema      -> traverse_ (validateWithSchemaRef itemSchema) xs
+    OpenApiItemsArray itemSchemas -> do
       when (len /= length itemSchemas) $
         invalid ("array size is invalid (should be exactly " ++ show (length itemSchemas) ++ ")")
       sequenceA_ (zipWith validateWithSchemaRef itemSchemas (Vector.toList xs))
