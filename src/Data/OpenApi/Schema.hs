@@ -13,6 +13,8 @@ module Data.OpenApi.Schema (
   toSchemaRef,
   schemaName,
   toInlinedSchema,
+  ToSchema1(..),
+  BySchema1(..),
 
   -- * Generic schema encoding
   genericDeclareNamedSchema,
