@@ -1,15 +1,17 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -59,6 +61,7 @@ import Numeric.Natural.Compat (Natural)
 import Data.Word
 import GHC.Generics
 import qualified Data.UUID.Types as UUID
+import Type.Reflection (Typeable, typeRep)
 
 import Data.OpenApi.Declare
 import Data.OpenApi.Internal
@@ -858,7 +861,58 @@ data Proxy2 a b = Proxy2
 
 data Proxy3 a b c = Proxy3
 
--- $setup
--- >>> import Data.OpenApi
--- >>> import Data.Aeson (encode)
--- >>> import Data.Aeson.Types (toJSONKeyText)
+-- | This class allows to generate schemas for polymorphic types (of kind @Type -> Type@).
+--
+-- Intended usage:
+--
+-- >>> data Foo a = Foo { foo :: a, bar :: Int } deriving (Eq, Show, Generic, ToSchema1)
+-- >>> :{
+-- instance (ToSchema a, Typeable a) => ToSchema (Foo a) where
+--   declareNamedSchema _ = declareNamedSchema @(BySchema1 Foo a) Proxy
+-- :}
+--
+-- >>> toNamedSchema @(Foo Int) Proxy ^. name
+-- Just "Foo_Int"
+-- >>> toNamedSchema @(Foo Bool) Proxy ^. name
+-- Just "Foo_Bool"
+-- >>> toNamedSchema @(Foo (Foo T.Text)) Proxy ^. name
+-- Just "Foo_(Foo_Text)"
+class ToSchema1 (f :: * -> *) where
+  declareNamedSchema1 :: (Generic (f a), GToSchema (Rep (f a)), ToSchema a) => Proxy f -> Proxy a -> Declare (Definitions Schema) NamedSchema
+
+  -- It would be cleaner to have GToSchema constraint only on default signature and not in the class method
+  -- above, however sadly GHC does not like it.
+  default declareNamedSchema1 :: forall a. (ToSchema a, Generic (f a), GToSchema (Rep (f a))) => Proxy f -> Proxy a -> Declare (Definitions Schema) NamedSchema
+  declareNamedSchema1 _ _ = genericDeclareNamedSchema @(f a) defaultSchemaOptions Proxy
+
+{- | For GHC 8.6+ it's more convenient to use @DerivingVia@ to derive instances of 'ToSchema'
+using 'ToSchema1' instance, like this:
+
+#if __GLASGOW_HASKELL__ >= 806
+>>> data Foo a = Foo { foo :: a, bar :: Int } deriving (Eq, Show, Generic, ToSchema1)
+>>> deriving via BySchema1 Foo a instance (ToSchema a, Typeable a) => ToSchema (Foo a)
+#else
+> data Foo a = Foo { foo :: a, bar :: Int } deriving (Eq, Show, Generic, ToSchema1)
+> deriving via BySchema1 Foo a instance (ToSchema a, Typeable a) => ToSchema (Foo a)
+#endif
+-}
+newtype BySchema1 f a = BySchema1 (f a)
+
+instance (ToSchema1 f, Generic (f a), GToSchema (Rep (f a)), Typeable (f a), ToSchema a) => ToSchema (BySchema1 f a) where
+  declareNamedSchema _ = do
+    sch <- declareNamedSchema1 @f @a Proxy Proxy
+    let tName = T.replace " " "_" $ T.pack $ show $ typeRep @(f a)
+    return $ rename (Just tName) sch
+
+{- $setup
+>>> import Data.OpenApi
+>>> import Data.Aeson (encode)
+>>> import Data.Aeson.Types (toJSONKeyText)
+>>> :set -XScopedTypeVariables
+>>> :set -XDeriveAnyClass
+>>> :set -XStandaloneDeriving
+>>> :set -XTypeApplications
+#if __GLASGOW_HASKELL__ >= 806
+>>> :set -XDerivingVia
+#endif
+-}
