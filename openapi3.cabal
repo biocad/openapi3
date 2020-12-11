@@ -1,6 +1,6 @@
 cabal-version:       >=1.10
 name:                openapi3
-version:             3.0.0.1
+version:             3.0.1.0
 
 synopsis:            OpenAPI 3.0 data model
 category:            Web, Swagger, OpenApi
