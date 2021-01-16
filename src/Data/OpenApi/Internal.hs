@@ -838,8 +838,17 @@ data OAuth2Flows = OAuth2Flows
   , _oAuth2FlowsAuthorizationCode :: Maybe (OAuth2Flow OAuth2AuthorizationCodeFlow)
   } deriving (Eq, Show, Generic, Data, Typeable)
 
+data HttpSchemeType
+  = HttpSchemeBearer
+  | HttpSchemeBasic
+  deriving (Eq, Show, Generic, Data, Typeable)
+instance ToJSON HttpSchemeType where
+    toJSON = genericToJSON (jsonPrefix "HttpScheme")
+instance FromJSON HttpSchemeType where
+    parseJSON = genericParseJSON (jsonPrefix "HttpScheme")
+
 data SecuritySchemeType
-  = SecuritySchemeHttp
+  = SecuritySchemeHttp HttpSchemeType
   | SecuritySchemeApiKey ApiKeyParams
   | SecuritySchemeOAuth2 OAuth2Flows
   | SecuritySchemeOpenIdConnect URL
@@ -1229,8 +1238,10 @@ instance ToJSON OAuth2Flows where
   toEncoding = sopSwaggerGenericToEncoding
 
 instance ToJSON SecuritySchemeType where
-  toJSON SecuritySchemeHttp
-      = object [ "type" .= ("http" :: Text) ]
+  toJSON (SecuritySchemeHttp ty)
+      = object [ "type" .= ("http" :: Text)
+               , "scheme" .= toJSON ty
+               ]
   toJSON (SecuritySchemeApiKey params)
       = toJSON params
     <+> object [ "type" .= ("apiKey" :: Text) ]
@@ -1379,7 +1390,7 @@ instance FromJSON SecuritySchemeType where
   parseJSON js@(Object o) = do
     (t :: Text) <- o .: "type"
     case t of
-      "http"   -> pure SecuritySchemeHttp
+      "http"   -> SecuritySchemeHttp <$> (o .: "scheme")
       "apiKey" -> SecuritySchemeApiKey <$> parseJSON js
       "oauth2" -> SecuritySchemeOAuth2 <$> (o .: "flows")
       "openIdConnect" -> SecuritySchemeOpenIdConnect <$> (o .: "openIdConnectUrl")

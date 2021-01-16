@@ -91,6 +91,7 @@ module Data.OpenApi (
   -- ** Security
   SecurityScheme(..),
   SecuritySchemeType(..),
+  HttpSchemeType(..),
   SecurityDefinitions(..),
   SecurityRequirement(..),
 
