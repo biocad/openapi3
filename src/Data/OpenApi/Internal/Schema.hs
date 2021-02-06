@@ -627,12 +627,18 @@ instance ToSchema UUID.UUID where
   declareNamedSchema p = pure $ named "UUID" $ paramSchemaToSchema p
     & example ?~ toJSON (UUID.toText UUID.nil)
 
-instance (ToSchema a, Typeable a, ToSchema b, Typeable b) => ToSchema (a, b)
-instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c) => ToSchema (a, b, c)
-instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d) => ToSchema (a, b, c, d)
-instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d, ToSchema e, Typeable e) => ToSchema (a, b, c, d, e)
-instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d, ToSchema e, Typeable e, ToSchema f, Typeable f) => ToSchema (a, b, c, d, e, f)
-instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d, ToSchema e, Typeable e, ToSchema f, Typeable f, ToSchema g, Typeable g) => ToSchema (a, b, c, d, e, f, g)
+instance (ToSchema a, Typeable a, ToSchema b, Typeable b) => ToSchema (a, b) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c) => ToSchema (a, b, c) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d) => ToSchema (a, b, c, d) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d, ToSchema e, Typeable e) => ToSchema (a, b, c, d, e) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d, ToSchema e, Typeable e, ToSchema f, Typeable f) => ToSchema (a, b, c, d, e, f) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, Typeable a, ToSchema b, Typeable b, ToSchema c, Typeable c, ToSchema d, Typeable d, ToSchema e, Typeable e, ToSchema f, Typeable f, ToSchema g, Typeable g) => ToSchema (a, b, c, d, e, f, g) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
 
 timeSchema :: T.Text -> Schema
 timeSchema fmt = mempty
@@ -864,8 +870,12 @@ genericDeclareSchema opts proxy = _namedSchemaSchema <$> genericDeclareNamedSche
 genericDeclareNamedSchema :: forall a. (Generic a, GToSchema (Rep a), Typeable a) =>
   SchemaOptions -> Proxy a -> Declare (Definitions Schema) NamedSchema
 genericDeclareNamedSchema opts _ =
-  rename (Just tName) <$> gdeclareNamedSchema opts (Proxy :: Proxy (Rep a)) mempty
-  where tName = T.replace " " "_" $ T.pack $ show $ typeRep @a
+  rename (Just $ T.pack name) <$> gdeclareNamedSchema opts (Proxy :: Proxy (Rep a)) mempty
+  where
+    unspace ' ' = '_'
+    unspace x = x
+    orig = fmap unspace $ show $ typeRep @a
+    name = datatypeNameModifier opts orig
 
 
 -- | Derive a 'Generic'-based name for a datatype and assign it to a given 'Schema'.
@@ -1109,7 +1119,7 @@ data Proxy3 a b c = Proxy3
 -- >>> toNamedSchema @(Foo (Foo T.Text)) Proxy ^. name
 -- Just "Foo_(Foo_Text)"
 class ToSchema1 (f :: * -> *) where
-  declareNamedSchema1 :: (Generic (f a), GToSchema (Rep (f a)), ToSchema a) => Proxy f -> Proxy a -> Declare (Definitions Schema) NamedSchema
+  declareNamedSchema1 :: (Generic (f a), GToSchema (Rep (f a)), ToSchema a, Typeable a) => Proxy f -> Proxy a -> Declare (Definitions Schema) NamedSchema
 
   -- It would be cleaner to have GToSchema constraint only on default signature and not in the class method
   -- above, however sadly GHC does not like it.
@@ -1129,7 +1139,7 @@ using 'ToSchema1' instance, like this:
 -}
 newtype BySchema1 f a = BySchema1 (f a)
 
-instance (ToSchema1 f, Generic (f a), GToSchema (Rep (f a)), Typeable (f a), ToSchema a) => ToSchema (BySchema1 f a) where
+instance (ToSchema1 f, Generic (f a), GToSchema (Rep (f a)), Typeable (f a), ToSchema a, Typeable a) => ToSchema (BySchema1 f a) where
   declareNamedSchema _ = do
     sch <- declareNamedSchema1 @f @a Proxy Proxy
     let tName = T.replace " " "_" $ T.pack $ show $ typeRep @(f a)
