@@ -838,14 +838,13 @@ data OAuth2Flows = OAuth2Flows
   , _oAuth2FlowsAuthorizationCode :: Maybe (OAuth2Flow OAuth2AuthorizationCodeFlow)
   } deriving (Eq, Show, Generic, Data, Typeable)
 
+type BearerFormat = Text
+
 data HttpSchemeType
-  = HttpSchemeBearer
+  = HttpSchemeBearer (Maybe BearerFormat)
   | HttpSchemeBasic
+  | HttpSchemeCustom Text
   deriving (Eq, Show, Generic, Data, Typeable)
-instance ToJSON HttpSchemeType where
-    toJSON = genericToJSON (jsonPrefix "HttpScheme")
-instance FromJSON HttpSchemeType where
-    parseJSON = genericParseJSON (jsonPrefix "HttpScheme")
 
 data SecuritySchemeType
   = SecuritySchemeHttp HttpSchemeType
@@ -1238,10 +1237,19 @@ instance ToJSON OAuth2Flows where
   toEncoding = sopSwaggerGenericToEncoding
 
 instance ToJSON SecuritySchemeType where
-  toJSON (SecuritySchemeHttp ty)
-      = object [ "type" .= ("http" :: Text)
-               , "scheme" .= toJSON ty
-               ]
+  toJSON (SecuritySchemeHttp ty) = case ty of
+    HttpSchemeBearer mFmt ->
+      object $ [ "type" .= ("http" :: Text)
+               , "scheme" .= ("bearer" :: Text)
+               ] <> maybe [] (\t -> ["bearerFormat" .= t]) mFmt
+    HttpSchemeBasic ->
+      object [ "type" .= ("http" :: Text)
+             , "scheme" .= ("basic" :: Text)
+             ]
+    HttpSchemeCustom t ->
+      object [ "type" .= ("http" :: Text)
+             , "scheme" .= t
+             ]
   toJSON (SecuritySchemeApiKey params)
       = toJSON params
     <+> object [ "type" .= ("apiKey" :: Text) ]
@@ -1390,7 +1398,12 @@ instance FromJSON SecuritySchemeType where
   parseJSON js@(Object o) = do
     (t :: Text) <- o .: "type"
     case t of
-      "http"   -> SecuritySchemeHttp <$> (o .: "scheme")
+      "http"   -> do
+          scheme <-  o .: "scheme"
+          SecuritySchemeHttp <$> case scheme of
+              "bearer" -> HttpSchemeBearer <$> (o .:! "bearerFormat")
+              "basic" -> pure HttpSchemeBasic
+              t -> pure $ HttpSchemeCustom t
       "apiKey" -> SecuritySchemeApiKey <$> parseJSON js
       "oauth2" -> SecuritySchemeOAuth2 <$> (o .: "flows")
       "openIdConnect" -> SecuritySchemeOpenIdConnect <$> (o .: "openIdConnectUrl")
