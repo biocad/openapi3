@@ -846,6 +846,23 @@ data HttpSchemeType
   | HttpSchemeCustom Text
   deriving (Eq, Show, Generic, Data, Typeable)
 
+-- |
+--
+-- >>> encode (SecuritySchemeHttp (HttpSchemeBearer Nothing))
+-- "{\"scheme\":\"bearer\",\"type\":\"http\"}"
+--
+-- >>> encode (SecuritySchemeHttp (HttpSchemeBearer (Just "jwt")))
+-- "{\"scheme\":\"bearer\",\"type\":\"http\",\"bearerFormat\":\"jwt\"}"
+--
+-- >>> encode (SecuritySchemeHttp HttpSchemeBasic)
+-- "{\"scheme\":\"basic\",\"type\":\"http\"}"
+--
+-- >>> encode (SecuritySchemeHttp (HttpSchemeCustom "CANARY"))
+-- "{\"scheme\":\"CANARY\",\"type\":\"http\"}"
+--
+-- >>> encode (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
+-- "{\"in\":\"cookie\",\"name\":\"id\",\"type\":\"apiKey\"}"
+--
 data SecuritySchemeType
   = SecuritySchemeHttp HttpSchemeType
   | SecuritySchemeApiKey ApiKeyParams
