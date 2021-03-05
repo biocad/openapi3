@@ -1,3 +1,20 @@
+3.0.2.0
+-------
+
+- Fix definition for HTTP security scheme (see [#10](https://github.com/biocad/openapi3/pull/10));
+- Fix error message in `exclusiveMaximum` / `exclusiveMinimum` validation (see
+  [#15](https://github.com/biocad/openapi3/pull/15));
+
+3.0.1.0
+-------
+
+- Support polymorphic types in schema generator.
+
+3.0.0
+-----
+
+- Switch to OpenAPI 3.0 specification.
+
 2.6.1
 -----
 
