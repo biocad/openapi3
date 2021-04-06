@@ -46,7 +46,7 @@ import Data.OpenApi.Lens
 import Data.OpenApi.SchemaOptions
 
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Lazy.Char8 as BSL
 import GHC.TypeLits (TypeError, ErrorMessage(..))
 
 -- | Default schema for binary data (any sequence of octets).
@@ -112,8 +112,10 @@ passwordSchema = mempty
 class ToParamSchema a where
   -- | Convert a type into a plain parameter schema.
   --
-  -- >>> encode $ toParamSchema (Proxy :: Proxy Integer)
-  -- "{\"type\":\"integer\"}"
+  -- >>> BSL.putStrLn $ encodePretty $ toParamSchema (Proxy :: Proxy Integer)
+  -- {
+  --     "type": "integer"
+  -- }
   toParamSchema :: Proxy a -> Schema
   default toParamSchema :: (Generic a, GToParamSchema (Rep a)) => Proxy a -> Schema
   toParamSchema = genericToParamSchema defaultSchemaOptions
@@ -155,8 +157,12 @@ instance ToParamSchema Word64 where
 
 -- | Default plain schema for @'Bounded'@, @'Integral'@ types.
 --
--- >>> encode $ toParamSchemaBoundedIntegral (Proxy :: Proxy Int8)
--- "{\"maximum\":127,\"minimum\":-128,\"type\":\"integer\"}"
+-- >>> BSL.putStrLn $ encodePretty $ toParamSchemaBoundedIntegral (Proxy :: Proxy Int8)
+-- {
+--     "maximum": 127,
+--     "minimum": -128,
+--     "type": "integer"
+-- }
 toParamSchemaBoundedIntegral :: forall a t. (Bounded a, Integral a) => Proxy a -> Schema
 toParamSchemaBoundedIntegral _ = mempty
   & type_ ?~ OpenApiInteger
@@ -275,8 +281,13 @@ instance ToParamSchema a => ToParamSchema (HashSet a) where
   toParamSchema _ = toParamSchema (Proxy :: Proxy (Set a))
 
 -- |
--- >>> encode $ toParamSchema (Proxy :: Proxy ())
--- "{\"type\":\"string\",\"enum\":[\"_\"]}"
+-- >>> BSL.putStrLn $ encodePretty $ toParamSchema (Proxy :: Proxy ())
+-- {
+--     "enum": [
+--         "_"
+--     ],
+--     "type": "string"
+-- }
 instance ToParamSchema () where
   toParamSchema _ = mempty
     & type_ ?~ OpenApiString
@@ -291,8 +302,14 @@ instance ToParamSchema UUID where
 --
 -- >>> :set -XDeriveGeneric
 -- >>> data Color = Red | Blue deriving Generic
--- >>> encode $ genericToParamSchema defaultSchemaOptions (Proxy :: Proxy Color)
--- "{\"type\":\"string\",\"enum\":[\"Red\",\"Blue\"]}"
+-- >>> BSL.putStrLn $ encodePretty $ genericToParamSchema defaultSchemaOptions (Proxy :: Proxy Color)
+-- {
+--     "enum": [
+--         "Red",
+--         "Blue"
+--     ],
+--     "type": "string"
+-- }
 genericToParamSchema :: forall a t. (Generic a, GToParamSchema (Rep a)) => SchemaOptions -> Proxy a -> Schema
 genericToParamSchema opts _ = gtoParamSchema opts (Proxy :: Proxy (Rep a)) mempty
 
@@ -334,3 +351,4 @@ data Proxy3 a b c = Proxy3
 
 -- $setup
 -- >>> import Data.Aeson (encode)
+-- >>> import Data.OpenApi.Internal.Utils

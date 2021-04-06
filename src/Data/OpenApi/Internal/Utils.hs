@@ -13,6 +13,8 @@ import Control.Lens ((&), (%~))
 import Control.Lens.TH
 import Data.Aeson
 import Data.Aeson.Types
+import qualified Data.Aeson.Encode.Pretty as P
+import qualified Data.ByteString.Lazy as BSL
 import Data.Char
 import Data.Data
 import Data.Hashable (Hashable)
@@ -132,3 +134,6 @@ instance SwaggerMonoid (Maybe a) where
   swaggerMempty = Nothing
   swaggerMappend x Nothing = x
   swaggerMappend _ y = y
+
+encodePretty :: ToJSON a => a -> BSL.ByteString
+encodePretty = P.encodePretty' $ P.defConfig { P.confCompare = P.compare }

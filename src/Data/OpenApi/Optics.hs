@@ -22,43 +22,88 @@
 -- Example from the "Data.OpenApi" module using @optics@:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: OpenApi)
+-- BSL.putStrLn $ encodePretty $ (mempty :: OpenApi)
 --   & #components % #schemas .~ [ ("User", mempty & #type ?~ OpenApiString) ]
 --   & #paths .~
 --     [ ("/user", mempty & #get ?~ (mempty
 --         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (Reference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"User info not found"},"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}},"description":"OK"}}}}},"components":{"schemas":{"User":{"type":"string"}}}}
+-- {
+--     "components": {
+--         "schemas": {
+--             "User": {
+--                 "type": "string"
+--             }
+--         }
+--     },
+--     "info": {
+--         "title": "",
+--         "version": ""
+--     },
+--     "openapi": "3.0.0",
+--     "paths": {
+--         "/user": {
+--             "get": {
+--                 "responses": {
+--                     "200": {
+--                         "content": {
+--                             "application/json": {
+--                                 "schema": {
+--                                     "$ref": "#/components/schemas/User"
+--                                 }
+--                             }
+--                         },
+--                         "description": "OK"
+--                     },
+--                     "404": {
+--                         "description": "User info not found"
+--                     }
+--                 }
+--             }
+--         }
+--     }
+-- }
 --
 -- For convenience optics are defined as /labels/. It means that field accessor
 -- names can be overloaded for different types. One such common field is
 -- @#description@. Many components of a Swagger specification can have
 -- descriptions, and you can use the same name for them:
 --
--- >>> BSL.putStrLn $ encode $ (mempty :: Response) & #description .~ "No content"
--- {"description":"No content"}
+-- >>> BSL.putStrLn $ encodePretty $ (mempty :: Response) & #description .~ "No content"
+-- {
+--     "description": "No content"
+-- }
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Schema)
+-- BSL.putStrLn $ encodePretty $ (mempty :: Schema)
 --   & #type        ?~ OpenApiBoolean
 --   & #description ?~ "To be or not to be"
 -- :}
--- {"type":"boolean","description":"To be or not to be"}
+-- {
+--     "description": "To be or not to be",
+--     "type": "boolean"
+-- }
 --
 -- Additionally, to simplify working with @'Response'@, both @'Operation'@ and
 -- @'Responses'@ have direct access to it via @'Optics.Core.At.at'@. Example:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Operation)
+-- BSL.putStrLn $ encodePretty $ (mempty :: Operation)
 --   & at 404 ?~ "Not found"
 -- :}
--- {"responses":{"404":{"description":"Not found"}}}
---
+-- {
+--     "responses": {
+--         "404": {
+--             "description": "Not found"
+--         }
+--     }
+-- }
 module Data.OpenApi.Optics () where
 
 import Data.Aeson (Value)
 import Data.Scientific (Scientific)
 import Data.OpenApi.Internal
+import Data.OpenApi.Internal.Utils
 import Data.Text (Text)
 import Optics.Core
 import Optics.TH

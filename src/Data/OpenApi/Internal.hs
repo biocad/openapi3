@@ -60,6 +60,8 @@ import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding)
 -- $setup
 -- >>> :seti -XDataKinds
 -- >>> import Data.Aeson
+-- >>> import Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal.Utils
 
 -- | A list of definitions that can be used in references.
 type Definitions = InsOrdHashMap Text
@@ -848,20 +850,37 @@ data HttpSchemeType
 
 -- |
 --
--- >>> encode (SecuritySchemeHttp (HttpSchemeBearer Nothing))
--- "{\"scheme\":\"bearer\",\"type\":\"http\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp (HttpSchemeBearer Nothing))
+-- {
+--     "scheme": "bearer",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeHttp (HttpSchemeBearer (Just "jwt")))
--- "{\"scheme\":\"bearer\",\"type\":\"http\",\"bearerFormat\":\"jwt\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp (HttpSchemeBearer (Just "jwt")))
+-- {
+--     "bearerFormat": "jwt",
+--     "scheme": "bearer",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeHttp HttpSchemeBasic)
--- "{\"scheme\":\"basic\",\"type\":\"http\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp HttpSchemeBasic)
+-- {
+--     "scheme": "basic",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeHttp (HttpSchemeCustom "CANARY"))
--- "{\"scheme\":\"CANARY\",\"type\":\"http\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp (HttpSchemeCustom "CANARY"))
+-- {
+--     "scheme": "CANARY",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
--- "{\"in\":\"cookie\",\"name\":\"id\",\"type\":\"apiKey\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
+-- {
+--     "in": "cookie",
+--     "name": "id",
+--     "type": "apiKey"
+-- }
 --
 data SecuritySchemeType
   = SecuritySchemeHttp HttpSchemeType
@@ -1305,8 +1324,12 @@ instance ToJSON Header where
 -- | As for nullary schema for 0-arity type constructors, see
 -- <https://github.com/GetShopTV/swagger2/issues/167>.
 --
--- >>> encode (OpenApiItemsArray [])
--- "{\"example\":[],\"items\":{},\"maxItems\":0}"
+-- >>> BSL.putStrLn $ encodePretty (OpenApiItemsArray [])
+-- {
+--     "example": [],
+--     "items": {},
+--     "maxItems": 0
+-- }
 --
 instance ToJSON OpenApiItems where
   toJSON (OpenApiItemsObject x) = object [ "items" .= x ]
