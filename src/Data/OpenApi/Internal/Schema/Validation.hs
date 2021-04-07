@@ -31,7 +31,6 @@ import           Control.Lens                        hiding (allOf)
 import           Control.Monad                       (forM, forM_, when)
 
 import           Data.Aeson                          hiding (Result)
-import           Data.Aeson.Encode.Pretty            (encodePretty)
 import           Data.Foldable                       (for_, sequenceA_,
                                                       traverse_)
 import           Data.HashMap.Strict                 (HashMap)
@@ -50,6 +49,7 @@ import qualified Data.Vector                         as Vector
 
 import           Data.OpenApi.Declare
 import           Data.OpenApi.Internal
+import           Data.OpenApi.Internal.Utils
 import           Data.OpenApi.Internal.Schema
 import           Data.OpenApi.Lens
 
@@ -103,33 +103,33 @@ validateToJSONWithPatternChecker checker = validateJSONWithPatternChecker checke
 -- <BLANKLINE>
 -- Swagger Schema:
 -- {
+--     "properties": {
+--         "name": {
+--             "type": "string"
+--         },
+--         "phone": {
+--             "$ref": "#/components/schemas/Phone"
+--         }
+--     },
 --     "required": [
 --         "name",
 --         "phone"
 --     ],
---     "type": "object",
---     "properties": {
---         "phone": {
---             "$ref": "#/components/schemas/Phone"
---         },
---         "name": {
---             "type": "string"
---         }
---     }
+--     "type": "object"
 -- }
 -- <BLANKLINE>
 -- Swagger Description Context:
 -- {
 --     "Phone": {
---         "required": [
---             "value"
---         ],
---         "type": "object",
 --         "properties": {
 --             "value": {
 --                 "type": "string"
 --             }
---         }
+--         },
+--         "required": [
+--             "value"
+--         ],
+--         "type": "object"
 --     }
 -- }
 -- <BLANKLINE>
