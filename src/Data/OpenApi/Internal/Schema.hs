@@ -657,7 +657,7 @@ instance ToSchema LocalTime where
   declareNamedSchema _ = pure $ named "LocalTime" $ timeSchema "yyyy-mm-ddThh:MM:ss"
     & example ?~ toJSON (LocalTime (fromGregorian 2016 7 22) (TimeOfDay 7 40 0))
 
--- | Format @"date"@ corresponds to @yyyy-mm-ddThh:MM:ss(Z|+hh:MM)@ format.
+-- | Format @"date-time"@ corresponds to @yyyy-mm-ddThh:MM:ss(Z|+hh:MM)@ format.
 instance ToSchema ZonedTime where
   declareNamedSchema _ = pure $ named "ZonedTime" $ timeSchema "date-time"
     & example ?~ toJSON (ZonedTime (LocalTime (fromGregorian 2016 7 22) (TimeOfDay 7 40 0)) (hoursToTimeZone 3))
