@@ -216,9 +216,9 @@ instance ToParamSchema LocalTime where
 
 -- |
 -- >>> toParamSchema (Proxy :: Proxy ZonedTime) ^. format
--- Just "yyyy-mm-ddThh:MM:ss+hhMM"
+-- Just "date-time"
 instance ToParamSchema ZonedTime where
-  toParamSchema _ = timeParamSchema "yyyy-mm-ddThh:MM:ss+hhMM"
+  toParamSchema _ = timeParamSchema "date-time"
 
 -- |
 -- >>> toParamSchema (Proxy :: Proxy UTCTime) ^. format
