@@ -155,7 +155,7 @@ import Data.OpenApi.Internal
 -- In this library you can use @'mempty'@ for a default/empty value. For instance:
 --
 -- >>> BSL.putStrLn $ encode (mempty :: OpenApi)
--- {"openapi":"3.0.0","info":{"version":"","title":""},"components":{}}
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"components":{}}
 --
 -- As you can see some spec properties (e.g. @"version"@) are there even when the spec is empty.
 -- That is because these properties are actually required ones.
@@ -164,12 +164,12 @@ import Data.OpenApi.Internal
 -- although it is not strictly necessary:
 --
 -- >>> BSL.putStrLn $ encode mempty { _infoTitle = "Todo API", _infoVersion = "1.0" }
--- {"version":"1.0","title":"Todo API"}
+-- {"title":"Todo API","version":"1.0"}
 --
 -- You can merge two values using @'mappend'@ or its infix version @('<>')@:
 --
 -- >>> BSL.putStrLn $ encode $ mempty { _infoTitle = "Todo API" } <> mempty { _infoVersion = "1.0" }
--- {"version":"1.0","title":"Todo API"}
+-- {"title":"Todo API","version":"1.0"}
 --
 -- This can be useful for combining specifications of endpoints into a whole API specification:
 --
@@ -202,7 +202,7 @@ import Data.OpenApi.Internal
 --         & at 200 ?~ ("OK" & _Inline.content.at "application/json" ?~ (mempty & schema ?~ Ref (Reference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"User info not found"},"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}},"description":"OK"}}}}},"components":{"schemas":{"User":{"type":"string"}}}}
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"User info not found"},"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}},"description":"OK"}}}}},"components":{"schemas":{"User":{"type":"string"}}}}
 --
 -- In the snippet above we declare an API with a single path @/user@. This path provides method @GET@
 -- which produces @application/json@ output. It should respond with code @200@ and body specified
@@ -221,7 +221,7 @@ import Data.OpenApi.Internal
 --   & type_       ?~ OpenApiBoolean
 --   & description ?~ "To be or not to be"
 -- :}
--- {"type":"boolean","description":"To be or not to be"}
+-- {"description":"To be or not to be","type":"boolean"}
 --
 -- Additionally, to simplify working with @'Response'@, both @'Operation'@ and @'Responses'@
 -- have direct access to it via @'at' code@. Example:
@@ -280,7 +280,7 @@ import Data.OpenApi.Internal
 -- >>> BSL.putStrLn $ encode (Person "David" 28)
 -- {"age":28,"name":"David"}
 -- >>> BSL.putStrLn $ encode $ toSchema (Proxy :: Proxy Person)
--- {"required":["name","age"],"type":"object","properties":{"age":{"type":"integer"},"name":{"type":"string"}}}
+-- {"required":["name","age"],"properties":{"name":{"type":"string"},"age":{"type":"integer"}},"type":"object"}
 --
 -- This package implements OpenAPI 3.0 spec, which supports @oneOf@ in schemas, allowing any sum types
 -- to be faithfully represented. All sum encodings supported by @aeson@ are supported here as well, with
@@ -292,7 +292,7 @@ import Data.OpenApi.Internal
 -- >>> instance ToJSON Error
 -- >>> instance ToSchema Error
 -- >>> BSL.putStrLn $ encode $ toSchema (Proxy :: Proxy Error)
--- {"oneOf":[{"required":["userId","tag"],"type":"object","properties":{"tag":{"type":"string","enum":["ErrorNoUser"]},"userId":{"maximum":9223372036854775807,"minimum":-9223372036854775808,"type":"integer"}}},{"required":["requiredPermission","tag"],"type":"object","properties":{"tag":{"type":"string","enum":["ErrorAccessDenied"]},"requiredPermission":{"type":"string"}}}],"type":"object"}
+-- {"oneOf":[{"required":["userId","tag"],"properties":{"userId":{"type":"integer","maximum":9223372036854775807,"minimum":-9223372036854775808},"tag":{"type":"string","enum":["ErrorNoUser"]}},"type":"object"},{"required":["requiredPermission","tag"],"properties":{"requiredPermission":{"type":"string"},"tag":{"type":"string","enum":["ErrorAccessDenied"]}},"type":"object"}],"type":"object"}
 
 -- $manipulation
 -- Sometimes you have to work with an imported or generated @'Swagger'@.

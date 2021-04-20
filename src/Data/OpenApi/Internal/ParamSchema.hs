@@ -156,7 +156,7 @@ instance ToParamSchema Word64 where
 -- | Default plain schema for @'Bounded'@, @'Integral'@ types.
 --
 -- >>> encode $ toParamSchemaBoundedIntegral (Proxy :: Proxy Int8)
--- "{\"maximum\":127,\"minimum\":-128,\"type\":\"integer\"}"
+-- "{\"type\":\"integer\",\"maximum\":127,\"minimum\":-128}"
 toParamSchemaBoundedIntegral :: forall a t. (Bounded a, Integral a) => Proxy a -> Schema
 toParamSchemaBoundedIntegral _ = mempty
   & type_ ?~ OpenApiInteger

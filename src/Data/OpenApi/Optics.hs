@@ -29,7 +29,7 @@
 --         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (Reference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"User info not found"},"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}},"description":"OK"}}}}},"components":{"schemas":{"User":{"type":"string"}}}}
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"User info not found"},"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}},"description":"OK"}}}}},"components":{"schemas":{"User":{"type":"string"}}}}
 --
 -- For convenience optics are defined as /labels/. It means that field accessor
 -- names can be overloaded for different types. One such common field is
@@ -43,7 +43,7 @@
 --   & #type        ?~ OpenApiBoolean
 --   & #description ?~ "To be or not to be"
 -- :}
--- {"type":"boolean","description":"To be or not to be"}
+-- {"description":"To be or not to be","type":"boolean"}
 --
 -- Additionally, to simplify working with @'Response'@, both @'Operation'@ and
 -- @'Responses'@ have direct access to it via @'Optics.Core.At.at'@. Example:

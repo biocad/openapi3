@@ -83,9 +83,9 @@ allOperations = paths.traverse.template
 -- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ ok & post ?~ ok)]
 -- >>> let sub = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
 -- >>> BSL.putStrLn $ encode api
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"paths":{"/user":{"get":{"responses":{"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
 -- >>> BSL.putStrLn $ encode $ api & operationsOf sub . at 404 ?~ "Not found"
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"Not found"},"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"Not found"},"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
 operationsOf :: OpenApi -> Traversal' OpenApi Operation
 operationsOf sub = paths.itraversed.withIndex.subops
   where
@@ -124,7 +124,7 @@ applyTagsFor ops ts swag = swag
 -- FIXME doc
 --
 -- >>> BSL.putStrLn $ encode $ runDeclare (declareResponse "application/json" (Proxy :: Proxy Day)) mempty
--- [{"Day":{"example":"2016-07-22","format":"date","type":"string"}},{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}}}]
+-- [{"Day":{"example":"2016-07-22","type":"string","format":"date"}},{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}}}]
 declareResponse :: ToSchema a => MediaType -> Proxy a -> Declare (Definitions Schema) Response
 declareResponse cType proxy = do
   s <- declareSchemaRef proxy
@@ -144,7 +144,7 @@ declareResponse cType proxy = do
 -- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
 -- >>> let res = declareResponse "application/json" (Proxy :: Proxy Day)
 -- >>> BSL.putStrLn $ encode $ api & setResponse 200 res
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}},"description":""}}}}},"components":{"schemas":{"Day":{"example":"2016-07-22","format":"date","type":"string"}}}}
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"paths":{"/user":{"get":{"responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}},"description":""}}}}},"components":{"schemas":{"Day":{"example":"2016-07-22","type":"string","format":"date"}}}}
 --
 -- See also @'setResponseWith'@.
 setResponse :: HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi
