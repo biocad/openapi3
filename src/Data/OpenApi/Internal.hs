@@ -698,6 +698,9 @@ data Schema = Schema
   , _schemaUniqueItems :: Maybe Bool
   , _schemaEnum :: Maybe [Value]
   , _schemaMultipleOf :: Maybe Scientific
+
+    -- | Specification Extensions
+  , _schemaExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | Regex pattern for @string@ type.
@@ -744,6 +747,9 @@ data Xml = Xml
     -- Default value is @False@.
     -- The definition takes effect only when defined alongside type being array (outside the items).
   , _xmlWrapped :: Maybe Bool
+
+    -- | Specification Extensions
+  , _xmlExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | A container for the expected responses of an operation.
@@ -759,6 +765,9 @@ data Responses = Responses
     -- | Any HTTP status code can be used as the property name (one property per HTTP status code).
     -- Describes the expected response for those HTTP status codes.
   , _responsesResponses :: InsOrdHashMap HttpStatusCode (Referenced Response)
+
+    -- | Specification Extensions
+  , _responsesExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 type HttpStatusCode = Int
@@ -865,6 +874,9 @@ data OAuth2Flow p = OAuth2Flow
     -- A map between the scope name and a short description for it.
     -- The map MAY be empty.
   , _oAuth2Scopes :: InsOrdHashMap Text Text
+
+    -- | Specification Extensions
+  , _oAuth2Extensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 data OAuth2Flows = OAuth2Flows
@@ -879,6 +891,9 @@ data OAuth2Flows = OAuth2Flows
 
     -- | Configuration for the OAuth Authorization Code flow
   , _oAuth2FlowsAuthorizationCode :: Maybe (OAuth2Flow OAuth2AuthorizationCodeFlow)
+
+    -- | Specification Extensions
+  , _oAuth2FlowsExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 type BearerFormat = Text
@@ -919,6 +934,9 @@ data SecurityScheme = SecurityScheme
 
     -- | A short description for security scheme.
   , _securitySchemeDescription :: Maybe Text
+
+    -- | Specification Extensions
+  , _securitySchemeExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 newtype SecurityDefinitions
@@ -965,7 +983,10 @@ data ExternalDocs = ExternalDocs
 
     -- | The URL for the target documentation.
   , _externalDocsUrl :: URL
-  } deriving (Eq, Ord, Show, Generic, Data, Typeable)
+
+    -- | Specification Extensions
+  , _externalDocsExtensions :: SpecificationExtensions
+  } deriving (Eq, Show, Generic, Data, Typeable)
 
 instance Hashable ExternalDocs
 
@@ -982,7 +1003,7 @@ data Referenced a
 instance IsString a => IsString (Referenced a) where
   fromString = Inline . fromString
 
-newtype URL = URL { getUrl :: Text } deriving (Eq, Ord, Show, Hashable, ToJSON, FromJSON, Data, Typeable)
+newtype URL = URL { getUrl :: Text } deriving (Eq, Ord, Show, Hashable, ToJSON, FromJSON, Data, Typeable, AesonDefaultValue)
 
 data AdditionalProperties
   = AdditionalPropertiesAllowed Bool
@@ -1020,6 +1041,8 @@ deriveGeneric ''Contact
 deriveGeneric ''License
 deriveGeneric ''ServerVariable
 deriveGeneric ''Tag
+deriveGeneric ''Xml
+deriveGeneric ''ExternalDocs
 
 -- =======================================================================
 -- Monoid instances
@@ -1121,6 +1144,7 @@ instance Semigroup OAuth2Flows where
     , _oAuth2FlowsPassword = _oAuth2FlowsPassword l <> _oAuth2FlowsPassword r
     , _oAuth2FlowsClientCredentials = _oAuth2FlowsClientCredentials l <> _oAuth2FlowsClientCredentials r
     , _oAuth2FlowsAuthorizationCode = _oAuth2FlowsAuthorizationCode l <> _oAuth2FlowsAuthorizationCode r
+    , _oAuth2FlowsExtensions = _oAuth2FlowsExtensions l <> _oAuth2FlowsExtensions r
     }
 
 instance Monoid OAuth2Flows where
@@ -1128,9 +1152,9 @@ instance Monoid OAuth2Flows where
   mappend = (<>)
 
 instance Semigroup SecurityScheme where
-  SecurityScheme (SecuritySchemeOAuth2 lFlows) lDesc
-    <> SecurityScheme (SecuritySchemeOAuth2 rFlows) rDesc =
-      SecurityScheme (SecuritySchemeOAuth2 $ lFlows <> rFlows) (swaggerMappend lDesc rDesc)
+  SecurityScheme (SecuritySchemeOAuth2 lFlows) lDesc lExt
+    <> SecurityScheme (SecuritySchemeOAuth2 rFlows) rDesc rExt =
+      SecurityScheme (SecuritySchemeOAuth2 $ lFlows <> rFlows) (swaggerMappend lDesc rDesc) (lExt <> rExt)
   l <> _ = l
 
 instance Semigroup SecurityDefinitions where
@@ -1201,12 +1225,6 @@ instance ToJSON ApiKeyLocation where
 instance ToJSON ApiKeyParams where
   toJSON = genericToJSON (jsonPrefix "apiKey")
 
-instance ToJSON ExternalDocs where
-  toJSON = genericToJSON (jsonPrefix "ExternalDocs")
-
-instance ToJSON Xml where
-  toJSON = genericToJSON (jsonPrefix "Xml")
-
 instance ToJSON Discriminator where
   toJSON = genericToJSON (jsonPrefix "Discriminator")
 
@@ -1240,9 +1258,6 @@ instance FromJSON ApiKeyLocation where
 
 instance FromJSON ApiKeyParams where
   parseJSON = genericParseJSON (jsonPrefix "apiKey")
-
-instance FromJSON ExternalDocs where
-  parseJSON = genericParseJSON (jsonPrefix "ExternalDocs")
 
 instance FromJSON Discriminator where
   parseJSON = genericParseJSON (jsonPrefix "Discriminator")
@@ -1337,7 +1352,7 @@ instance ToJSON SecurityScheme where
 
 instance ToJSON Schema where
   toJSON = sopSwaggerGenericToJSONWithOpts $
-      mkSwaggerAesonOptions "schema" & saoSubObject ?~ "items"
+      mkSwaggerAesonOptions "schema" & saoSubObject .~ ["items", "extensions"]
 
 instance ToJSON Header where
   toJSON = sopSwaggerGenericToJSON
@@ -1406,6 +1421,14 @@ instance ToJSON Link where
   toEncoding = sopSwaggerGenericToEncoding
 
 instance ToJSON Tag where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON Xml where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON ExternalDocs where
   toJSON = sopSwaggerGenericToJSON
   toEncoding = sopSwaggerGenericToEncoding
 
@@ -1531,8 +1554,16 @@ instance FromJSON Param where
 instance FromJSON Responses where
   parseJSON (Object o) = Responses
     <$> o .:? "default"
-    <*> parseJSON (Object (HashMap.delete "default" o))
+    <*> parseJSON (Object (HashMap.filterWithKey (\k _ -> not $ isExt k)
+                            $ HashMap.delete "default" o))
+    <*> case HashMap.filterWithKey (\k _ -> isExt k) o of
+          exts | HashMap.null exts -> pure (SpecificationExtensions mempty)
+               | otherwise -> parseJSON (Object exts)
   parseJSON _ = empty
+
+isExt :: Text -> Bool
+isExt = Text.isPrefixOf "x-"
+
 
 instance FromJSON Example where
   parseJSON = sopSwaggerGenericParseJSON
@@ -1564,6 +1595,12 @@ instance FromJSON Link where
 instance FromJSON Tag where
   parseJSON = sopSwaggerGenericParseJSON
 
+instance FromJSON Xml where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON ExternalDocs where
+  parseJSON = sopSwaggerGenericParseJSON
+
 instance FromJSON Reference where
   parseJSON (Object o) = Reference <$> o .: "$ref"
   parseJSON _ = empty
@@ -1590,9 +1627,6 @@ instance FromJSON (Referenced Header)   where parseJSON = referencedParseJSON "#
 instance FromJSON (Referenced Link)     where parseJSON = referencedParseJSON "#/components/links/"
 instance FromJSON (Referenced Callback) where parseJSON = referencedParseJSON "#/components/callbacks/"
 
-instance FromJSON Xml where
-  parseJSON = genericParseJSON (jsonPrefix "xml")
-
 instance FromJSON AdditionalProperties where
   parseJSON (Bool b) = pure $ AdditionalPropertiesAllowed b
   parseJSON js = AdditionalPropertiesSchema <$> parseJSON js
@@ -1612,58 +1646,64 @@ instance FromJSON SpecificationExtensions where
       filterExtFields = fmap (\(k,v) -> fmap (\k' -> (k',v)) $ Text.stripPrefix "x-" k) . HashMap.toList
 
 instance HasSwaggerAesonOptions Server where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "server" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "server" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Components where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "components"
 instance HasSwaggerAesonOptions Header where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "header"
 instance AesonDefaultValue p => HasSwaggerAesonOptions (OAuth2Flow p) where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2" & saoSubObject ?~ "params"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2" & saoSubObject .~ ["params", "extensions"]
 instance HasSwaggerAesonOptions OAuth2Flows where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2Flows"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2Flows" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Operation where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "operation" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "operation" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Param where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "param"
 instance HasSwaggerAesonOptions PathItem where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "pathItem" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "pathItem" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Response where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "response" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "response" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions RequestBody where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "requestBody" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "requestBody" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions MediaTypeObject where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "mediaTypeObject" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "mediaTypeObject" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Responses where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "responses" & saoSubObject ?~ "responses"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "responses" & saoSubObject .~ ["responses", "extensions"]
 instance HasSwaggerAesonOptions SecurityScheme where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject ?~ "type"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject .~ ["type", "extensions"]
 instance HasSwaggerAesonOptions Schema where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject ?~ "paramSchema"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject .~ ["paramSchema", "extensions"]
 instance HasSwaggerAesonOptions OpenApi where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoAdditionalPairs .~ [("openapi", "3.0.0")]
-                                                          & saoSubObject ?~ "extensions"
+                                                          & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Example where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "example" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "example" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Encoding where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "encoding" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "encoding" & saoSubObject .~ ["extensions"]
 
 instance HasSwaggerAesonOptions Link where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "link" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "link" & saoSubObject .~ ["extensions"]
 
 instance HasSwaggerAesonOptions Info where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "info" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "info" & saoSubObject .~ ["extensions"]
 
 instance HasSwaggerAesonOptions Contact where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "contact" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "contact" & saoSubObject .~ ["extensions"]
 
 instance HasSwaggerAesonOptions License where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "license" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "license" & saoSubObject .~ ["extensions"]
 
 instance HasSwaggerAesonOptions ServerVariable where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "serverVariable" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "serverVariable" & saoSubObject .~ ["extensions"]
 
 instance HasSwaggerAesonOptions Tag where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "tag" & saoSubObject ?~ "extensions"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "tag" & saoSubObject .~ ["extensions"]
+
+instance HasSwaggerAesonOptions Xml where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "xml" & saoSubObject .~ ["extensions"]
+
+instance HasSwaggerAesonOptions ExternalDocs where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "externalDocs" & saoSubObject .~ ["extensions"]
 
 instance AesonDefaultValue Server
 instance AesonDefaultValue Components
