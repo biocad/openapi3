@@ -171,6 +171,7 @@ declareSchema = fmap _namedSchemaSchema . declareNamedSchema
 --     "format": "date",
 --     "type": "string"
 -- }
+>>>>>>> Fixed the tests
 toNamedSchema :: ToSchema a => Proxy a -> NamedSchema
 toNamedSchema = undeclare . declareNamedSchema
 
@@ -381,6 +382,16 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --     ],
 --     "type": "object"
 -- }
+-- >>> BSL.putStrLn $ encode $ sketchSchema (1, 2, 3)
+-- {"example":[1,2,3],"type":"array","items":{"type":"number"}}
+--
+-- >>> BSL.putStrLn $ encode $ sketchSchema ("Jack", 25)
+-- {"example":["Jack",25],"type":"array","items":[{"type":"string"},{"type":"number"}]}
+--
+-- >>> data Person = Person { name :: String, age :: Int } deriving (Generic)
+-- >>> instance ToJSON Person
+-- >>> BSL.putStrLn $ encode $ sketchSchema (Person "Jack" 25)
+-- {"required":["age","name"],"properties":{"age":{"type":"number"},"name":{"type":"string"}},"example":{"age":25,"name":"Jack"},"type":"object"}
 sketchSchema :: ToJSON a => a -> Schema
 sketchSchema = sketch . toJSON
   where

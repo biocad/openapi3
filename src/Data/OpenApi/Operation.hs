@@ -142,6 +142,7 @@ allOperations = paths.traverse.template
 --         }
 --     }
 -- }
+
 operationsOf :: OpenApi -> Traversal' OpenApi Operation
 operationsOf sub = paths.itraversed.withIndex.subops
   where
@@ -179,6 +180,7 @@ applyTagsFor ops ts swag = swag
 --
 -- FIXME doc
 --
+<<<<<<< HEAD
 -- >>> BSL.putStrLn $ encodePretty $ runDeclare (declareResponse "application/json" (Proxy :: Proxy Day)) mempty
 -- [
 --     {
@@ -199,6 +201,10 @@ applyTagsFor ops ts swag = swag
 --         "description": ""
 --     }
 -- ]
+=======
+-- >>> BSL.putStrLn $ encode $ runDeclare (declareResponse "application/json" (Proxy :: Proxy Day)) mempty
+-- [{"Day":{"example":"2016-07-22","type":"string","format":"date"}},{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}}}]
+>>>>>>> Fixed the tests
 declareResponse :: ToSchema a => MediaType -> Proxy a -> Declare (Definitions Schema) Response
 declareResponse cType proxy = do
   s <- declareSchemaRef proxy
@@ -217,6 +223,7 @@ declareResponse cType proxy = do
 --
 -- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
 -- >>> let res = declareResponse "application/json" (Proxy :: Proxy Day)
+<<<<<<< HEAD
 -- >>> BSL.putStrLn $ encodePretty $ api & setResponse 200 res
 -- {
 --     "components": {
@@ -252,6 +259,10 @@ declareResponse cType proxy = do
 --         }
 --     }
 -- }
+=======
+-- >>> BSL.putStrLn $ encode $ api & setResponse 200 res
+-- {"openapi":"3.0.0","info":{"title":"","version":""},"paths":{"/user":{"get":{"responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}},"description":""}}}}},"components":{"schemas":{"Day":{"example":"2016-07-22","type":"string","format":"date"}}}}
+>>>>>>> Fixed the tests
 --
 -- See also @'setResponseWith'@.
 setResponse :: HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi
