@@ -15,58 +15,59 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 -- For TypeErrors
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
+
 module Data.OpenApi.Internal.ParamSchema where
 
 import Control.Lens
 import Data.Aeson (ToJSON (..))
-import Data.Proxy
-import GHC.Generics
-
-import Data.Int
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import Data.Fixed (Fixed, HasResolution (..), Pico)
 import "unordered-containers" Data.HashSet (HashSet)
+import Data.Int
 import Data.Monoid
-import Data.Set (Set)
+import Data.OpenApi.Internal
+import Data.OpenApi.Lens
+import Data.OpenApi.SchemaOptions
+import Data.Proxy
 import Data.Scientific
-import Data.Fixed (HasResolution(..), Fixed, Pico)
+import Data.Set (Set)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Time
+import Data.UUID.Types (UUID)
 import qualified Data.Vector as V
 import qualified Data.Vector.Primitive as VP
 import qualified Data.Vector.Storable as VS
 import qualified Data.Vector.Unboxed as VU
 import Data.Version (Version)
-import Numeric.Natural.Compat (Natural)
 import Data.Word
-import Data.UUID.Types (UUID)
+import GHC.Generics
+import GHC.TypeLits (ErrorMessage (..), TypeError)
+import Numeric.Natural.Compat (Natural)
 import Web.Cookie (SetCookie)
-
-import Data.OpenApi.Internal
-import Data.OpenApi.Lens
-import Data.OpenApi.SchemaOptions
-
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy.Char8 as BSL
-import GHC.TypeLits (TypeError, ErrorMessage(..))
 
 -- | Default schema for binary data (any sequence of octets).
 binarySchema :: Schema
-binarySchema = mempty
-  & type_ ?~ OpenApiString
-  & format ?~ "binary"
+binarySchema =
+  mempty
+    & type_ ?~ OpenApiString
+    & format ?~ "binary"
 
 -- | Default schema for binary data (base64 encoded).
 byteSchema :: Schema
-byteSchema = mempty
-  & type_ ?~ OpenApiString
-  & format ?~ "byte"
+byteSchema =
+  mempty
+    & type_ ?~ OpenApiString
+    & format ?~ "byte"
 
 -- | Default schema for password string.
 -- @"password"@ format is used to hint UIs the input needs to be obscured.
 passwordSchema :: Schema
-passwordSchema = mempty
-  & type_ ?~ OpenApiString
-  & format ?~ "password"
+passwordSchema =
+  mempty
+    & type_ ?~ OpenApiString
+    & format ?~ "password"
 
 -- | Convert a type into a plain @'Schema'@.
 --
@@ -130,14 +131,17 @@ instance ToParamSchema Integer where
   toParamSchema _ = mempty & type_ ?~ OpenApiInteger
 
 instance ToParamSchema Natural where
-  toParamSchema _ = mempty
-    & type_            ?~ OpenApiInteger
-    & minimum_         ?~ 0
-    & exclusiveMinimum ?~ False
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiInteger
+      & minimum_ ?~ 0
+      & exclusiveMinimum ?~ False
 
-instance ToParamSchema Int    where toParamSchema = toParamSchemaBoundedIntegral
-instance ToParamSchema Int8   where toParamSchema = toParamSchemaBoundedIntegral
-instance ToParamSchema Int16  where toParamSchema = toParamSchemaBoundedIntegral
+instance ToParamSchema Int where toParamSchema = toParamSchemaBoundedIntegral
+
+instance ToParamSchema Int8 where toParamSchema = toParamSchemaBoundedIntegral
+
+instance ToParamSchema Int16 where toParamSchema = toParamSchemaBoundedIntegral
 
 instance ToParamSchema Int32 where
   toParamSchema proxy = toParamSchemaBoundedIntegral proxy & format ?~ "int32"
@@ -145,8 +149,10 @@ instance ToParamSchema Int32 where
 instance ToParamSchema Int64 where
   toParamSchema proxy = toParamSchemaBoundedIntegral proxy & format ?~ "int64"
 
-instance ToParamSchema Word   where toParamSchema = toParamSchemaBoundedIntegral
-instance ToParamSchema Word8  where toParamSchema = toParamSchemaBoundedIntegral
+instance ToParamSchema Word where toParamSchema = toParamSchemaBoundedIntegral
+
+instance ToParamSchema Word8 where toParamSchema = toParamSchemaBoundedIntegral
+
 instance ToParamSchema Word16 where toParamSchema = toParamSchemaBoundedIntegral
 
 instance ToParamSchema Word32 where
@@ -164,39 +170,45 @@ instance ToParamSchema Word64 where
 --     "type": "integer"
 -- }
 toParamSchemaBoundedIntegral :: forall a t. (Bounded a, Integral a) => Proxy a -> Schema
-toParamSchemaBoundedIntegral _ = mempty
-  & type_ ?~ OpenApiInteger
-  & minimum_ ?~ fromInteger (toInteger (minBound :: a))
-  & maximum_ ?~ fromInteger (toInteger (maxBound :: a))
+toParamSchemaBoundedIntegral _ =
+  mempty
+    & type_ ?~ OpenApiInteger
+    & minimum_ ?~ fromInteger (toInteger (minBound :: a))
+    & maximum_ ?~ fromInteger (toInteger (maxBound :: a))
 
 instance ToParamSchema Char where
-  toParamSchema _ = mempty
-    & type_ ?~ OpenApiString
-    & maxLength ?~ 1
-    & minLength ?~ 1
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiString
+      & maxLength ?~ 1
+      & minLength ?~ 1
 
 instance ToParamSchema Scientific where
   toParamSchema _ = mempty & type_ ?~ OpenApiNumber
 
 instance HasResolution a => ToParamSchema (Fixed a) where
-  toParamSchema _ = mempty
-    & type_      ?~ OpenApiNumber
-    & multipleOf ?~ (recip . fromInteger $ resolution (Proxy :: Proxy a))
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiNumber
+      & multipleOf ?~ (recip . fromInteger $ resolution (Proxy :: Proxy a))
 
 instance ToParamSchema Double where
-  toParamSchema _ = mempty
-    & type_  ?~ OpenApiNumber
-    & format ?~ "double"
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiNumber
+      & format ?~ "double"
 
 instance ToParamSchema Float where
-  toParamSchema _ = mempty
-    & type_  ?~ OpenApiNumber
-    & format ?~ "float"
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiNumber
+      & format ?~ "float"
 
 timeParamSchema :: String -> Schema
-timeParamSchema fmt = mempty
-  & type_  ?~ OpenApiString
-  & format ?~ T.pack fmt
+timeParamSchema fmt =
+  mempty
+    & type_ ?~ OpenApiString
+    & format ?~ T.pack fmt
 
 -- | Format @"date"@ corresponds to @yyyy-mm-dd@ format.
 instance ToParamSchema Day where
@@ -236,46 +248,62 @@ instance ToParamSchema TL.Text where
   toParamSchema _ = toParamSchema (Proxy :: Proxy String)
 
 instance ToParamSchema Version where
-  toParamSchema _ = mempty
-    & type_ ?~ OpenApiString
-    & pattern ?~ "^\\d+(\\.\\d+)*$"
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiString
+      & pattern ?~ "^\\d+(\\.\\d+)*$"
 
 instance ToParamSchema SetCookie where
-  toParamSchema _ = mempty
-    & type_ ?~ OpenApiString
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiString
 
 type family ToParamSchemaByteStringError bs where
-  ToParamSchemaByteStringError bs = TypeError
+  ToParamSchemaByteStringError bs =
+    TypeError
       ( 'Text "Impossible to have an instance " :<>: ShowType (ToParamSchema bs) :<>: Text "."
-   :$$: 'Text "Please, use a newtype wrapper around " :<>: ShowType bs :<>: Text " instead."
-   :$$: 'Text "Consider using byteParamSchema or binaryParamSchemaemplates." )
+          :$$: 'Text "Please, use a newtype wrapper around " :<>: ShowType bs :<>: Text " instead."
+          :$$: 'Text "Consider using byteParamSchema or binaryParamSchemaemplates."
+      )
 
-instance ToParamSchemaByteStringError BS.ByteString  => ToParamSchema BS.ByteString  where toParamSchema = error "impossible"
+instance ToParamSchemaByteStringError BS.ByteString => ToParamSchema BS.ByteString where toParamSchema = error "impossible"
+
 instance ToParamSchemaByteStringError BSL.ByteString => ToParamSchema BSL.ByteString where toParamSchema = error "impossible"
 
 instance ToParamSchema All where toParamSchema _ = toParamSchema (Proxy :: Proxy Bool)
+
 instance ToParamSchema Any where toParamSchema _ = toParamSchema (Proxy :: Proxy Bool)
-instance ToParamSchema a => ToParamSchema (Sum a)     where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
+
+instance ToParamSchema a => ToParamSchema (Sum a) where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
+
 instance ToParamSchema a => ToParamSchema (Product a) where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
-instance ToParamSchema a => ToParamSchema (First a)   where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
-instance ToParamSchema a => ToParamSchema (Last a)    where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
-instance ToParamSchema a => ToParamSchema (Dual a)    where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
+
+instance ToParamSchema a => ToParamSchema (First a) where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
+
+instance ToParamSchema a => ToParamSchema (Last a) where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
+
+instance ToParamSchema a => ToParamSchema (Dual a) where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
 
 instance ToParamSchema a => ToParamSchema (Identity a) where toParamSchema _ = toParamSchema (Proxy :: Proxy a)
 
 instance ToParamSchema a => ToParamSchema [a] where
-  toParamSchema _ = mempty
-    & type_ ?~ OpenApiArray
-    & items ?~ OpenApiItemsObject (Inline $ toParamSchema (Proxy :: Proxy a))
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiArray
+      & items ?~ OpenApiItemsObject (Inline $ toParamSchema (Proxy :: Proxy a))
 
 instance ToParamSchema a => ToParamSchema (V.Vector a) where toParamSchema _ = toParamSchema (Proxy :: Proxy [a])
+
 instance ToParamSchema a => ToParamSchema (VP.Vector a) where toParamSchema _ = toParamSchema (Proxy :: Proxy [a])
+
 instance ToParamSchema a => ToParamSchema (VS.Vector a) where toParamSchema _ = toParamSchema (Proxy :: Proxy [a])
+
 instance ToParamSchema a => ToParamSchema (VU.Vector a) where toParamSchema _ = toParamSchema (Proxy :: Proxy [a])
 
 instance ToParamSchema a => ToParamSchema (Set a) where
-  toParamSchema _ = toParamSchema (Proxy :: Proxy [a])
-    & uniqueItems ?~ True
+  toParamSchema _ =
+    toParamSchema (Proxy :: Proxy [a])
+      & uniqueItems ?~ True
 
 instance ToParamSchema a => ToParamSchema (HashSet a) where
   toParamSchema _ = toParamSchema (Proxy :: Proxy (Set a))
@@ -289,14 +317,16 @@ instance ToParamSchema a => ToParamSchema (HashSet a) where
 --     "type": "string"
 -- }
 instance ToParamSchema () where
-  toParamSchema _ = mempty
-    & type_ ?~ OpenApiString
-    & enum_ ?~ ["_"]
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiString
+      & enum_ ?~ ["_"]
 
 instance ToParamSchema UUID where
-  toParamSchema _ = mempty
-    & type_ ?~ OpenApiString
-    & format ?~ "uuid"
+  toParamSchema _ =
+    mempty
+      & type_ ?~ OpenApiString
+      & format ?~ "uuid"
 
 -- | A configurable generic @'Schema'@ creator.
 --
@@ -338,14 +368,15 @@ instance (GEnumParamSchema f, GEnumParamSchema g) => GEnumParamSchema (f :+: g) 
   genumParamSchema opts _ = genumParamSchema opts (Proxy :: Proxy f) . genumParamSchema opts (Proxy :: Proxy g)
 
 instance Constructor c => GEnumParamSchema (C1 c U1) where
-  genumParamSchema opts _ s = s
-    & type_ ?~ OpenApiString
-    & enum_ %~ addEnumValue tag
+  genumParamSchema opts _ s =
+    s
+      & type_ ?~ OpenApiString
+      & enum_ %~ addEnumValue tag
     where
       tag = toJSON (constructorTagModifier opts (conName (Proxy3 :: Proxy3 c f p)))
 
-      addEnumValue x Nothing    = Just [x]
-      addEnumValue x (Just xs)  = Just (x:xs)
+      addEnumValue x Nothing = Just [x]
+      addEnumValue x (Just xs) = Just (x : xs)
 
 data Proxy3 a b c = Proxy3
 
