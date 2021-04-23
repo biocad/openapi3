@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 -- |
 -- Module:      Data.OpenApi.Declare
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
