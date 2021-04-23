@@ -28,6 +28,7 @@ import Control.Monad.Trans.RWS.Lazy as Lazy
 import Control.Monad.Trans.RWS.Strict as Strict
 import Control.Monad.Trans.Writer.Lazy as Lazy
 import Control.Monad.Trans.Writer.Strict as Strict
+import Control.Lens.Lens (Lens')
 import Data.Functor.Identity
 import Data.Functor.Compose
 import Data.Tuple (swap)
