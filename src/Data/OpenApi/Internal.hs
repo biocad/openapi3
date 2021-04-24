@@ -369,13 +369,13 @@ data Style
   = StyleMatrix
     -- ^ Path-style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.7).
   | StyleLabel
-    -- ^ Label style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.7).
+    -- ^ Label style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.5).
   | StyleForm
-    -- ^ Form style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.7).
+    -- ^ Form style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.8).
     -- This option replaces @collectionFormat@ with a @csv@ (when @explode@ is false) or @multi@
     -- (when explode is true) value from OpenAPI 2.0.
   | StyleSimple
-    -- ^ Simple style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.7).
+    -- ^ Simple style parameters defined by [RFC6570](https://tools.ietf.org/html/rfc6570#section-3.2.6).
     -- This option replaces @collectionFormat@ with a @csv@ value from OpenAPI 2.0.
   | StyleSpaceDelimited
     -- ^ Space separated array values.
