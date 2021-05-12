@@ -48,6 +48,8 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Generics.SOP.TH                  (deriveGeneric)
 import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToJSON
                                         ,sopSwaggerGenericToJSONWithOpts
+                                        ,sopSwaggerGenericToEncoding
+                                        ,sopSwaggerGenericToEncodingWithOpts
                                         ,sopSwaggerGenericParseJSON
                                         ,HasSwaggerAesonOptions(..)
                                         ,AesonDefaultValue(..)
@@ -55,7 +57,6 @@ import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToJSON
                                         ,saoAdditionalPairs
                                         ,saoSubObject)
 import Data.OpenApi.Internal.Utils
-import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding)
 
 -- $setup
 -- >>> :seti -XDataKinds
@@ -1315,6 +1316,8 @@ instance ToJSON SecurityScheme where
 
 instance ToJSON Schema where
   toJSON = sopSwaggerGenericToJSONWithOpts $
+      mkSwaggerAesonOptions "schema" & saoSubObject ?~ "items"
+  toEncoding = sopSwaggerGenericToEncodingWithOpts $
       mkSwaggerAesonOptions "schema" & saoSubObject ?~ "items"
 
 instance ToJSON Header where

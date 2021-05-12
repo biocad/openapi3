@@ -9,8 +9,9 @@ module Data.OpenApi.Internal.AesonUtils (
     -- * Generic functions
     AesonDefaultValue(..),
     sopSwaggerGenericToJSON,
-    sopSwaggerGenericToEncoding,
     sopSwaggerGenericToJSONWithOpts,
+    sopSwaggerGenericToEncoding,
+    sopSwaggerGenericToEncodingWithOpts,
     sopSwaggerGenericParseJSON,
     -- * Options
     HasSwaggerAesonOptions(..),
@@ -266,6 +267,24 @@ sopSwaggerGenericToEncoding x =
   where
     proxy = Proxy :: Proxy a
     opts  = swaggerAesonOptions proxy
+
+sopSwaggerGenericToEncodingWithOpts
+    :: forall a xs.
+        ( HasDatatypeInfo a
+        , HasSwaggerAesonOptions a
+        , All2 ToJSON (Code a)
+        , All2 Eq (Code a)
+        , Code a ~ '[xs]
+        )
+    => SwaggerAesonOptions
+    -> a
+    -> Encoding
+sopSwaggerGenericToEncodingWithOpts opts x =
+    let ps = sopSwaggerGenericToEncoding' opts (from x) (datatypeInfo proxy) defs
+    in pairs (pairsToSeries (opts ^. saoAdditionalPairs) <> ps)
+  where
+    proxy = Proxy :: Proxy a
+    defs = hcpure (Proxy :: Proxy AesonDefaultValue) defaultValue
 
 pairsToSeries :: [Pair] -> Series
 pairsToSeries = foldMap (\(k, v) -> (k .= v))
