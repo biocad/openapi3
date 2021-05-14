@@ -28,7 +28,7 @@ import           Prelude.Compat
 
 import           Control.Applicative
 import           Control.Lens                        hiding (allOf)
-import           Control.Monad                       (forM, forM_, when)
+import           Control.Monad                       (forM, when)
 
 import           Data.Aeson                          hiding (Result)
 import           Data.Foldable                       (for_, sequenceA_,
@@ -44,6 +44,7 @@ import           Data.Text                           (Text)
 import qualified Data.Text                           as Text
 import qualified Data.Text.Lazy                      as TL
 import qualified Data.Text.Lazy.Encoding             as TL
+import           Data.Traversable                    (for)
 import           Data.Vector                         (Vector)
 import qualified Data.Vector                         as Vector
 
@@ -476,10 +477,11 @@ validateSchemaType val = withSchema $ \sch ->
         1 -> valid
         _ -> invalid $ "Value matches more than one of 'oneOf' schemas: " ++ show val
     (view allOf -> Just variants) -> do
-      -- Default semantics for Validation Monad will abort when at least one
-      -- variant does not match.
-      forM_ variants $ \var ->
-        validateWithSchemaRef var val
+      schemas <- for variants $ \case
+        Ref ref  -> withRef ref pure
+        Inline s -> pure s
+
+      sub (mconcat schemas) $ validateWithSchema val
 
     _ ->
       case (sch ^. type_, val) of
