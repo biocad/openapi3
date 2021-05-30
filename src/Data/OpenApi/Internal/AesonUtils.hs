@@ -11,6 +11,7 @@ module Data.OpenApi.Internal.AesonUtils (
     sopSwaggerGenericToJSON,
     sopSwaggerGenericToEncoding,
     sopSwaggerGenericToJSONWithOpts,
+    sopSwaggerGenericToEncodingWithOpts,
     sopSwaggerGenericParseJSON,
     -- * Options
     HasSwaggerAesonOptions(..),
@@ -48,13 +49,13 @@ import qualified Data.HashSet.InsOrd as InsOrdHS
 data SwaggerAesonOptions = SwaggerAesonOptions
     { _saoPrefix          :: String
     , _saoAdditionalPairs :: [(Text, Value)]
-    , _saoSubObject       :: Maybe String
+    , _saoSubObject       :: [String]
     }
 
 mkSwaggerAesonOptions
     :: String  -- ^ prefix
     -> SwaggerAesonOptions
-mkSwaggerAesonOptions pfx = SwaggerAesonOptions pfx [] Nothing
+mkSwaggerAesonOptions pfx = SwaggerAesonOptions pfx [] []
 
 makeLenses ''SwaggerAesonOptions
 
@@ -153,7 +154,7 @@ sopSwaggerGenericToJSON'' (SwaggerAesonOptions prefix _ sub) = go
     go :: (All ToJSON ys, All Eq ys) => NP I ys -> NP FieldInfo ys -> NP Maybe ys -> [Pair]
     go  Nil Nil Nil = []
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
-        | Just name' == sub = case json of
+        | name' `elem` sub = case json of
               Object m -> HM.toList m ++ rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show json
@@ -226,7 +227,7 @@ sopSwaggerGenericParseJSON'' (SwaggerAesonOptions prefix _ sub) obj = go
     go :: (All FromJSON ys, All Eq ys) => NP FieldInfo ys -> NP Maybe ys -> Parser (NP I ys)
     go  Nil Nil = pure Nil
     go (FieldInfo name :* names) (def :* defs)
-        | Just name' == sub =
+        | name' `elem` sub =
             -- Note: we might strip fields of outer structure.
             cons <$> (withDef $ parseJSON $ Object obj) <*> rest
         | otherwise = case def of
@@ -267,6 +268,24 @@ sopSwaggerGenericToEncoding x =
     proxy = Proxy :: Proxy a
     opts  = swaggerAesonOptions proxy
 
+sopSwaggerGenericToEncodingWithOpts
+    :: forall a xs.
+        ( HasDatatypeInfo a
+        , HasSwaggerAesonOptions a
+        , All2 ToJSON (Code a)
+        , All2 Eq (Code a)
+        , Code a ~ '[xs]
+        )
+    => SwaggerAesonOptions
+    -> a
+    -> Encoding
+sopSwaggerGenericToEncodingWithOpts opts x =
+    let ps = sopSwaggerGenericToEncoding' opts (from x) (datatypeInfo proxy) defs
+    in pairs (pairsToSeries (opts ^. saoAdditionalPairs) <> ps)
+  where
+    proxy = Proxy :: Proxy a
+    defs = hcpure (Proxy :: Proxy AesonDefaultValue) defaultValue
+
 pairsToSeries :: [Pair] -> Series
 pairsToSeries = foldMap (\(k, v) -> (k .= v))
 
@@ -293,7 +312,7 @@ sopSwaggerGenericToEncoding'' (SwaggerAesonOptions prefix _ sub) = go
     go :: (All ToJSON ys, All Eq ys) => NP I ys -> NP FieldInfo ys -> NP Maybe ys -> Series
     go  Nil Nil Nil = mempty
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
-        | Just name' == sub = case toJSON x of
+        | name' `elem` sub = case toJSON x of
               Object m -> pairsToSeries (HM.toList m) <> rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show (toJSON x)
