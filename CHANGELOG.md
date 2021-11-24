@@ -1,6 +1,9 @@
 Unreleased
 ----------
 
+- Use `SecurityDefinitions` type for `_componentsSecuritySchemes`
+  [#32](https://github.com/biocad/openapi3/pull/32)).
+
 3.1.0
 -----
 
