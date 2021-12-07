@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
@@ -28,6 +29,11 @@ import Control.Applicative ((<|>))
 import Control.Lens     (makeLenses, (^.))
 import Control.Monad    (unless)
 import Data.Aeson       (ToJSON(..), FromJSON(..), Value(..), Object, object, (.:), (.:?), (.!=), withObject, Encoding, pairs, (.=), Series)
+
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
+#endif
 import Data.Aeson.Types (Parser, Pair)
 import Data.Char        (toLower, isUpper)
 import Data.Foldable    (traverse_)
@@ -47,7 +53,7 @@ import qualified Data.HashSet.InsOrd as InsOrdHS
 
 data SwaggerAesonOptions = SwaggerAesonOptions
     { _saoPrefix          :: String
-    , _saoAdditionalPairs :: [(Text, Value)]
+    , _saoAdditionalPairs :: [Pair]
     , _saoSubObject       :: Maybe String
     }
 
@@ -154,14 +160,14 @@ sopSwaggerGenericToJSON'' (SwaggerAesonOptions prefix _ sub) = go
     go  Nil Nil Nil = []
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
         | Just name' == sub = case json of
-              Object m -> HM.toList m ++ rest
+              Object m -> toListCompat m ++ rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show json
         -- If default value: omit it.
         | Just x == def =
             rest
         | otherwise =
-            (T.pack name', json) : rest
+            (toKeyCompat name', json) : rest
       where
         json  = toJSON x
         name' = fieldNameModifier name
@@ -195,11 +201,11 @@ sopSwaggerGenericParseJSON = withObject "Swagger Record Object" $ \obj ->
     proxy = Proxy :: Proxy a
     opts  = swaggerAesonOptions proxy
 
-    parseAdditionalField :: Object -> (Text, Value) -> Parser ()
+    parseAdditionalField :: Object -> Pair -> Parser ()
     parseAdditionalField obj (k, v) = do
         v' <- obj .: k
         unless (v == v') $ fail $
-            "Additonal field don't match for key " ++ T.unpack k
+            "Additonal field don't match for key " ++ fromKeyCompat k
             ++ ": " ++ show v
             ++ " /= " ++ show v'
 
@@ -230,8 +236,8 @@ sopSwaggerGenericParseJSON'' (SwaggerAesonOptions prefix _ sub) obj = go
             -- Note: we might strip fields of outer structure.
             cons <$> (withDef $ parseJSON $ Object obj) <*> rest
         | otherwise = case def of
-            Just def' -> cons <$> obj .:? T.pack name' .!= def' <*> rest
-            Nothing  ->  cons <$> obj .: T.pack name' <*> rest
+            Just def' -> cons <$> obj .:? toKeyCompat name' .!= def' <*> rest
+            Nothing  ->  cons <$> obj .: toKeyCompat name' <*> rest
       where
         cons h t = I h :* t
         name' = fieldNameModifier name
@@ -294,14 +300,14 @@ sopSwaggerGenericToEncoding'' (SwaggerAesonOptions prefix _ sub) = go
     go  Nil Nil Nil = mempty
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
         | Just name' == sub = case toJSON x of
-              Object m -> pairsToSeries (HM.toList m) <> rest
+              Object m -> pairsToSeries (toListCompat m) <> rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show (toJSON x)
         -- If default value: omit it.
         | Just x == def =
             rest
         | otherwise =
-            (T.pack name' .= x) <> rest
+            (toKeyCompat name' .= x) <> rest
       where
         name' = fieldNameModifier name
         rest  = go xs names defs
@@ -310,3 +316,31 @@ sopSwaggerGenericToEncoding'' (SwaggerAesonOptions prefix _ sub) = go
     modifier = lowerFirstUppers . drop (length prefix)
     lowerFirstUppers s = map toLower x ++ y
       where (x, y) = span isUpper s
+
+-------------------------------------------------------------------------------
+-- Aeson compatibility helpers
+-------------------------------------------------------------------------------
+
+#if MIN_VERSION_aeson(2,0,0)
+toListCompat :: KeyMap.KeyMap v -> [(Key.Key, v)]
+toListCompat = KeyMap.toList
+#else
+toListCompat :: HM.HashMap Text v -> [(Text, v)]
+toListCompat = HM.toList
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+toKeyCompat :: String -> Key.Key
+toKeyCompat = Key.fromString
+#else
+toKeyCompat :: String -> Text
+toKeyCompat = T.pack
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+fromKeyCompat :: Key.Key -> String
+fromKeyCompat = Key.toString
+#else
+fromKeyCompat :: Text -> String
+fromKeyCompat = T.unpack
+#endif

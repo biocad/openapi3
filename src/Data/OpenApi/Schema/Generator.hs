@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -10,7 +11,16 @@ import           Prelude.Compat
 import           Control.Lens.Operators
 import           Control.Monad                           (filterM)
 import           Data.Aeson
+#if MIN_VERSION_aeson(2,0,0)
+import           Data.Aeson.Key (Key)
+import qualified Data.Aeson.Key as Key
+import           Data.Aeson.KeyMap (KeyMap)
+import qualified Data.Aeson.KeyMap as KeyMap
+#endif
 import           Data.Aeson.Types
+import           Data.Bifunctor                          (first)
+import           Data.HashMap.Strict                     (HashMap)
+import qualified Data.HashMap.Strict                     as HashMap
 import qualified Data.HashMap.Strict.InsOrd              as M
 import           Data.Maybe
 import           Data.Proxy
@@ -19,6 +29,7 @@ import qualified Data.Set                                as S
 import           Data.OpenApi
 import           Data.OpenApi.Declare
 import           Data.OpenApi.Internal.Schema.Validation (inferSchemaTypes)
+import           Data.Text                               (Text)
 import qualified Data.Text                               as T
 import qualified Data.Vector                             as V
 import           Test.QuickCheck                         (arbitrary)
@@ -95,7 +106,7 @@ schemaGen defns schema =
               return . M.fromList $ zip additionalKeys (repeat . schemaGen defns $ dereference defns addlSchema)
             _                                      -> return []
           x <- sequence $ gens <> additionalGens
-          return . Object $ M.toHashMap x
+          return . Object $ fromInsOrdCompat x
 
 dereference :: Definitions a -> Referenced a -> a
 dereference _ (Inline a)               = a
@@ -113,3 +124,11 @@ validateFromJSON p = forAll (genValue p) $
                                  Left err -> failed
                                                { reason = err
                                                }
+
+#if MIN_VERSION_aeson(2,0,0)
+fromInsOrdCompat :: M.InsOrdHashMap Text v -> KeyMap v
+fromInsOrdCompat = KeyMap.fromList . fmap (first Key.fromText) . M.toList
+#else
+fromInsOrdCompat :: M.InsOrdHashMap Text v -> HashMap Text v
+fromInsOrdCompat = M.toHashMap
+#endif

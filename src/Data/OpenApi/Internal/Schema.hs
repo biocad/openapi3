@@ -31,6 +31,11 @@ import Control.Monad
 import Control.Monad.Writer
 import Data.Aeson (Object (..), SumEncoding (..), ToJSON (..), ToJSONKey (..),
                    ToJSONKeyFunction (..), Value (..))
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
+#endif
+import Data.Bifunctor (first)
 import Data.Char
 import Data.Data (Data)
 import Data.Foldable (traverse_)
@@ -405,8 +410,8 @@ sketchSchema = sketch . toJSON
           _               -> Nothing
     go (Object o) = mempty
       & type_         ?~ OpenApiObject
-      & required      .~ sort (HashMap.keys o)
-      & properties    .~ fmap (Inline . go) (InsOrdHashMap.fromHashMap o)
+      & required      .~ sort (keysCompat o)
+      & properties    .~ fmap (Inline . go) (toInsOrdHashMapCompat o)
 
 -- | Make a restrictive sketch of a @'Schema'@ based on a @'ToJSON'@ instance.
 -- Produced schema uses as much constraints as possible.
@@ -570,12 +575,12 @@ sketchStrictSchema = go . toJSON
     go js@(Object o) = mempty
       & type_         ?~ OpenApiObject
       & required      .~ sort names
-      & properties    .~ fmap (Inline . go) (InsOrdHashMap.fromHashMap o)
+      & properties    .~ fmap (Inline . go) (toInsOrdHashMapCompat o)
       & maxProperties ?~ fromIntegral (length names)
       & minProperties ?~ fromIntegral (length names)
       & enum_         ?~ [js]
       where
-        names = HashMap.keys o
+        names = keysCompat o
 
 class GToSchema (f :: * -> *) where
   gdeclareNamedSchema :: SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
@@ -816,7 +821,7 @@ declareSchemaBoundedEnumKeyMapping _ = case toJSONKey :: ToJSONKeyFunction key o
     objectSchema keyToText = do
       valueRef <- declareSchemaRef (Proxy :: Proxy value)
       let allKeys   = [minBound..maxBound :: key]
-          mkPair k  =  (keyToText k, valueRef)
+          mkPair k  = (fromKeyCompat (keyToText k), valueRef)
       return $ mempty
         & type_ ?~ OpenApiObject
         & properties .~ InsOrdHashMap.fromList (map mkPair allKeys)
@@ -1120,3 +1125,34 @@ data Proxy3 a b c = Proxy3
 >>> :set -XStandaloneDeriving
 >>> :set -XTypeApplications
 -}
+
+-------------------------------------------------------------------------------
+-- Aeson compatibility helpers
+-------------------------------------------------------------------------------
+
+#if MIN_VERSION_aeson(2,0,0)
+fromKeyCompat :: Key.Key -> T.Text
+fromKeyCompat = Key.toText
+#else
+fromKeyCompat :: T.Text -> T.Text
+fromKeyCompat = id
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+toInsOrdHashMapCompat ::
+  KeyMap.KeyMap v -> InsOrdHashMap.InsOrdHashMap T.Text v
+toInsOrdHashMapCompat =
+  InsOrdHashMap.fromList . fmap (first Key.toText) . KeyMap.toList
+#else
+toInsOrdHashMapCompat ::
+  HashMap T.Text v -> InsOrdHashMap.InsOrdHashMap T.Text v
+toInsOrdHashMapCompat = InsOrdHashMap.fromHashMap
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+keysCompat :: KeyMap.KeyMap v -> [T.Text]
+keysCompat = map Key.toText . KeyMap.keys
+#else
+keysCompat :: HashMap T.Text v -> [T.Text]
+keysCompat = HashMap.keys
+#endif

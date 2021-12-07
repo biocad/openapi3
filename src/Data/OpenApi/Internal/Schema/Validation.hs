@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall                  #-}
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -31,10 +32,18 @@ import           Control.Lens                        hiding (allOf)
 import           Control.Monad                       (forM, forM_, when)
 
 import           Data.Aeson                          hiding (Result)
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.Key as Key
+import           Data.Aeson.KeyMap (KeyMap)
+import qualified Data.Aeson.KeyMap as KeyMap
+import           Data.Bifunctor                      (first)
+#endif
 import           Data.Foldable                       (for_, sequenceA_,
                                                       traverse_)
+#if !MIN_VERSION_aeson(2,0,0)
 import           Data.HashMap.Strict                 (HashMap)
 import qualified Data.HashMap.Strict                 as HashMap
+#endif
 import qualified Data.HashMap.Strict.InsOrd          as InsOrdHashMap
 import qualified "unordered-containers" Data.HashSet as HashSet
 import           Data.Maybe                          (fromMaybe)
@@ -366,10 +375,16 @@ validateArray xs = do
     len = Vector.length xs
     allUnique = len == HashSet.size (HashSet.fromList (Vector.toList xs))
 
-validateObject :: HashMap Text Value -> Validation Schema ()
+validateObject ::
+#if MIN_VERSION_aeson(2,0,0)
+  KeyMap.KeyMap Value ->
+#else
+  HashMap Text Value ->
+#endif
+  Validation Schema ()
 validateObject o = withSchema $ \sch ->
   case sch ^. discriminator of
-    Just (Discriminator pname types) -> case fromJSON <$> HashMap.lookup pname o of
+    Just (Discriminator pname types) -> case fromJSON <$> lookupCompat pname o of
       Just (Success pvalue) ->
         let ref = fromMaybe pvalue $ InsOrdHashMap.lookup pvalue types
         -- TODO ref may be name or reference
@@ -388,15 +403,15 @@ validateObject o = withSchema $ \sch ->
       validateRequired
       validateProps
   where
-    size = fromIntegral (HashMap.size o)
+    size = fromIntegral (sizeCompat o)
 
     validateRequired = withSchema $ \sch -> traverse_ validateReq (sch ^. required)
     validateReq n =
-      when (not (HashMap.member n o)) $
+      when (not (memberCompat n o)) $
         invalid ("property " ++ show n ++ " is required, but not found in " ++ show (encode o))
 
     validateProps = withSchema $ \sch -> do
-      for_ (HashMap.toList o) $ \(k, v) ->
+      for_ (toListCompat o) $ \(k, v) ->
         case v of
           Null | not (k `elem` (sch ^. required)) -> valid  -- null is fine for non-required property
           _ ->
@@ -522,3 +537,39 @@ showType (Nothing, Number _) = "OpenApiNumber"
 showType (Nothing, String _) = "OpenApiString"
 showType (Nothing, Array _)  = "OpenApiArray"
 showType (Nothing, Object _) = "OpenApiObject"
+
+-------------------------------------------------------------------------------
+-- Aeson compatibility helpers
+-------------------------------------------------------------------------------
+
+#if MIN_VERSION_aeson(2,0,0)
+sizeCompat :: KeyMap v -> Int
+sizeCompat = KeyMap.size
+#else
+sizeCompat :: HashMap Text v -> Int
+sizeCompat = HashMap.size
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+lookupCompat :: Text -> KeyMap v -> Maybe v
+lookupCompat = KeyMap.lookup . Key.fromText
+#else
+lookupCompat :: Text -> HashMap Text v -> Maybe v
+lookupCompat = HashMap.lookup
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+memberCompat :: Text -> KeyMap v -> Bool
+memberCompat = KeyMap.member . Key.fromText
+#else
+memberCompat :: Text -> HashMap Text v -> Bool
+memberCompat = HashMap.member
+#endif
+
+#if MIN_VERSION_aeson(2,0,0)
+toListCompat :: KeyMap v -> [(Text, v)]
+toListCompat = fmap (first Key.toText) . KeyMap.toList
+#else
+toListCompat :: HashMap Text v -> [(Text, v)]
+toListCompat = HashMap.toList
+#endif
