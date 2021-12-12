@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE PackageImports      #-}
 {-# LANGUAGE RecordWildCards     #-}
@@ -8,6 +9,10 @@ module Data.OpenApi.Schema.ValidationSpec where
 import           Control.Applicative
 import           Control.Lens                        ((&), (.~), (?~))
 import           Data.Aeson
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
+#endif
 import           Data.Aeson.Types
 import           Data.Hashable                       (Hashable)
 import           Data.HashMap.Strict                 (HashMap)
@@ -30,6 +35,7 @@ import           GHC.Generics
 
 import           Data.OpenApi
 import           Data.OpenApi.Declare
+import           Data.OpenApi.Aeson.Compat (stringToKey)
 
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
@@ -124,9 +130,9 @@ instance Arbitrary Person where
 
 invalidPersonToJSON :: Person -> Value
 invalidPersonToJSON Person{..} = object
-  [ T.pack "personName"  .= toJSON name
-  , T.pack "personPhone" .= toJSON phone
-  , T.pack "personEmail" .= toJSON email
+  [ stringToKey "personName"  .= toJSON name
+  , stringToKey "personPhone" .= toJSON phone
+  , stringToKey "personEmail" .= toJSON email
   ]
 
 -- ========================================================================
@@ -305,3 +311,11 @@ instance Arbitrary Value where
     , (3, Number <$> arbitrary)
     , (3, Bool   <$> arbitrary)
     , (1, return Null) ]
+
+#if MIN_VERSION_aeson(2,0,0)
+instance Arbitrary v => Arbitrary (KeyMap.KeyMap v) where
+  arbitrary = KeyMap.fromList <$> arbitrary
+
+instance Arbitrary Key.Key where
+  arbitrary = Key.fromText <$> arbitrary
+#endif

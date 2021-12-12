@@ -1,0 +1,7 @@
+branches: master
+
+constraint-set aeson-1
+  constraints: aeson <2.0
+
+constraint-set aeson-2
+  constraints: aeson >=2.0
