@@ -46,7 +46,8 @@ import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
 import Generics.SOP.TH                  (deriveGeneric)
-import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToJSON
+import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding
+                                        ,sopSwaggerGenericToJSON
                                         ,sopSwaggerGenericToJSONWithOpts
                                         ,sopSwaggerGenericParseJSON
                                         ,HasSwaggerAesonOptions(..)
@@ -55,7 +56,6 @@ import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToJSON
                                         ,saoAdditionalPairs
                                         ,saoSubObject)
 import Data.OpenApi.Internal.Utils
-import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding)
 
 -- $setup
 -- >>> :seti -XDataKinds
@@ -196,7 +196,7 @@ data Components = Components
   , _componentsExamples :: Definitions Example
   , _componentsRequestBodies :: Definitions RequestBody
   , _componentsHeaders :: Definitions Header
-  , _componentsSecuritySchemes :: Definitions SecurityScheme
+  , _componentsSecuritySchemes :: SecurityDefinitions
   , _componentsLinks :: Definitions Link
   , _componentsCallbacks :: Definitions Callback
   } deriving (Eq, Show, Generic, Data, Typeable)
@@ -1125,6 +1125,7 @@ instance SwaggerMonoid Response
 instance SwaggerMonoid ExternalDocs
 instance SwaggerMonoid Operation
 instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
+instance SwaggerMonoid SecurityDefinitions
 
 instance SwaggerMonoid MimeList
 deriving instance SwaggerMonoid URL
@@ -1614,3 +1615,5 @@ instance AesonDefaultValue MimeList where defaultValue = Just mempty
 instance AesonDefaultValue Info
 instance AesonDefaultValue ParamLocation
 instance AesonDefaultValue Link
+instance AesonDefaultValue SecurityDefinitions where
+  defaultValue = Just mempty
