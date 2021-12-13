@@ -64,13 +64,14 @@ import GHC.Generics
 import qualified Data.UUID.Types as UUID
 import Type.Reflection (Typeable, typeRep)
 
-import Data.OpenApi.Declare
-import Data.OpenApi.Internal
-import Data.OpenApi.Internal.ParamSchema (ToParamSchema(..))
-import Data.OpenApi.Lens hiding (name, schema)
-import qualified Data.OpenApi.Lens as Swagger
-import Data.OpenApi.SchemaOptions
-import Data.OpenApi.Internal.TypeShape
+import           Data.OpenApi.Aeson.Compat         (keyToText, objectKeys, toInsOrdHashMap)
+import           Data.OpenApi.Declare
+import           Data.OpenApi.Internal
+import           Data.OpenApi.Internal.ParamSchema (ToParamSchema (..))
+import           Data.OpenApi.Internal.TypeShape
+import           Data.OpenApi.Lens                 hiding (name, schema)
+import qualified Data.OpenApi.Lens                 as Swagger
+import           Data.OpenApi.SchemaOptions
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -405,8 +406,8 @@ sketchSchema = sketch . toJSON
           _               -> Nothing
     go (Object o) = mempty
       & type_         ?~ OpenApiObject
-      & required      .~ sort (HashMap.keys o)
-      & properties    .~ fmap (Inline . go) (InsOrdHashMap.fromHashMap o)
+      & required      .~ sort (objectKeys o)
+      & properties    .~ fmap (Inline . go) (toInsOrdHashMap o)
 
 -- | Make a restrictive sketch of a @'Schema'@ based on a @'ToJSON'@ instance.
 -- Produced schema uses as much constraints as possible.
@@ -570,12 +571,12 @@ sketchStrictSchema = go . toJSON
     go js@(Object o) = mempty
       & type_         ?~ OpenApiObject
       & required      .~ sort names
-      & properties    .~ fmap (Inline . go) (InsOrdHashMap.fromHashMap o)
+      & properties    .~ fmap (Inline . go) (toInsOrdHashMap o)
       & maxProperties ?~ fromIntegral (length names)
       & minProperties ?~ fromIntegral (length names)
       & enum_         ?~ [js]
       where
-        names = HashMap.keys o
+        names = objectKeys o
 
 class GToSchema (f :: * -> *) where
   gdeclareNamedSchema :: SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
@@ -810,13 +811,13 @@ declareSchemaBoundedEnumKeyMapping :: forall map key value.
   (Bounded key, Enum key, ToJSONKey key, ToSchema key, ToSchema value)
   => Proxy (map key value) -> Declare (Definitions Schema) Schema
 declareSchemaBoundedEnumKeyMapping _ = case toJSONKey :: ToJSONKeyFunction key of
-  ToJSONKeyText keyToText _ -> objectSchema keyToText
+  ToJSONKeyText getKey _ -> objectSchema getKey
   ToJSONKeyValue _ _ -> declareSchema (Proxy :: Proxy [(key, value)])
   where
-    objectSchema keyToText = do
+    objectSchema getKey = do
       valueRef <- declareSchemaRef (Proxy :: Proxy value)
       let allKeys   = [minBound..maxBound :: key]
-          mkPair k  =  (keyToText k, valueRef)
+          mkPair k  =  (keyToText $ getKey k, valueRef)
       return $ mempty
         & type_ ?~ OpenApiObject
         & properties .~ InsOrdHashMap.fromList (map mkPair allKeys)

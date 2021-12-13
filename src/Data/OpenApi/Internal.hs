@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -21,6 +22,9 @@ import Prelude.Compat
 import           Control.Applicative
 import           Control.Lens          ((&), (.~), (?~))
 import           Data.Aeson            hiding (Encoding)
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap     as KeyMap
+#endif
 import qualified Data.Aeson.Types      as JSON
 import           Data.Data             (Constr, Data (..), DataType, Fixity (..), Typeable,
                                         constrIndex, mkConstr, mkDataType)
@@ -45,17 +49,13 @@ import           Text.Read             (readMaybe)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
-import Generics.SOP.TH                  (deriveGeneric)
-import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding
-                                        ,sopSwaggerGenericToJSON
-                                        ,sopSwaggerGenericToJSONWithOpts
-                                        ,sopSwaggerGenericParseJSON
-                                        ,HasSwaggerAesonOptions(..)
-                                        ,AesonDefaultValue(..)
-                                        ,mkSwaggerAesonOptions
-                                        ,saoAdditionalPairs
-                                        ,saoSubObject)
+import Data.OpenApi.Aeson.Compat        (deleteKey)
+import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAesonOptions (..),
+                                         mkSwaggerAesonOptions, saoAdditionalPairs, saoSubObject,
+                                         sopSwaggerGenericParseJSON, sopSwaggerGenericToEncoding,
+                                         sopSwaggerGenericToJSON, sopSwaggerGenericToJSONWithOpts)
 import Data.OpenApi.Internal.Utils
+import Generics.SOP.TH                  (deriveGeneric)
 
 -- $setup
 -- >>> :seti -XDataKinds
@@ -337,7 +337,7 @@ data RequestBody = RequestBody
     -- | The content of the request body.
     -- The key is a media type or media type range and the value describes it.
     -- For requests that match multiple keys, only the most specific key is applicable.
-    -- e.g. @text/plain@ overrides @text/*@
+    -- e.g. @text/plain@ overrides @text/\*@
   , _requestBodyContent :: InsOrdHashMap MediaType MediaTypeObject
 
     -- | Determines if the request body is required in the request.
@@ -394,7 +394,7 @@ data Encoding = Encoding
     -- for other primitive types – @text/plain@; for object - @application/json@;
     -- for array – the default is defined based on the inner type.
     -- The value can be a specific media type (e.g. @application/json@),
-    -- a wildcard media type (e.g. @image/*@), or a comma-separated list of the two types.
+    -- a wildcard media type (e.g. @image/\*@), or a comma-separated list of the two types.
     _encodingContentType :: Maybe MediaType
 
     -- | A map allowing additional information to be provided as headers,
@@ -734,7 +734,7 @@ data Response = Response
     -- | A map containing descriptions of potential response payloads.
     -- The key is a media type or media type range and the value describes it.
     -- For responses that match multiple keys, only the most specific key is applicable.
-    -- e.g. @text/plain@ overrides @text/*@.
+    -- e.g. @text/plain@ overrides @text/\*@.
   , _responseContent :: InsOrdHashMap MediaType MediaTypeObject
 
     -- | Maps a header name to its definition.
@@ -1492,7 +1492,7 @@ instance FromJSON Param where
 instance FromJSON Responses where
   parseJSON (Object o) = Responses
     <$> o .:? "default"
-    <*> parseJSON (Object (HashMap.delete "default" o))
+    <*> parseJSON (Object (deleteKey "default" o))
   parseJSON _ = empty
 
 instance FromJSON Example where
