@@ -301,6 +301,7 @@ instance Eq ZonedTime where
 -- Arbitrary instance for Data.Aeson.Value
 -- ========================================================================
 
+#if !MIN_VERSION_aeson(2,0,3)
 instance Arbitrary Value where
   -- Weights are almost random
   -- Uniform oneof tends not to build complex objects cause of recursive call.
@@ -311,8 +312,9 @@ instance Arbitrary Value where
     , (3, Number <$> arbitrary)
     , (3, Bool   <$> arbitrary)
     , (1, return Null) ]
+#endif
 
-#if MIN_VERSION_aeson(2,0,0)
+#if MIN_VERSION_aeson(2,0,0) && !MIN_VERSION_aeson(2,0,3)
 instance Arbitrary v => Arbitrary (KeyMap.KeyMap v) where
   arbitrary = KeyMap.fromList <$> arbitrary
 
