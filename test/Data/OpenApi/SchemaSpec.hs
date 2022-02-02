@@ -59,6 +59,9 @@ checkInlinedRecSchema proxy js = inlineNonRecursiveSchemas defs s <=> js
   where
     (defs, s) = runDeclare (declareSchema proxy) mempty
 
+checkToSchemaDeclare :: (HasCallStack, ToSchema a) => Proxy a -> Value -> Spec
+checkToSchemaDeclare proxy js = runDeclare (declareSchemaRef proxy) mempty <=> js
+
 spec :: Spec
 spec = do
   describe "Generic ToSchema" $ do
@@ -78,6 +81,7 @@ spec = do
       context "UserId (non-record newtype)" $ checkToSchema (Proxy :: Proxy UserId) userIdSchemaJSON
       context "Player (unary record)" $ checkToSchema (Proxy :: Proxy Player) playerSchemaJSON
       context "SingleMaybeField (unary record with Maybe)" $ checkToSchema (Proxy :: Proxy SingleMaybeField) singleMaybeFieldSchemaJSON
+      context "Natural Language (single field data with recursive fields)" $ checkToSchemaDeclare (Proxy :: Proxy Predicate) predicateSchemaDeclareJSON
     context "Players (inlining schema)" $ checkToSchema (Proxy :: Proxy Players) playersSchemaJSON
     context "MyRoseTree (datatypeNameModifier)" $ checkToSchema (Proxy :: Proxy MyRoseTree) myRoseTreeSchemaJSON
     context "MyRoseTree' (datatypeNameModifier)" $ checkToSchema (Proxy :: Proxy MyRoseTree') myRoseTreeSchemaJSON'
