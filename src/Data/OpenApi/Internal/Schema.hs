@@ -945,7 +945,7 @@ instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s 
         case schema ^. items of
           Just (OpenApiItemsArray [_]) -> fieldSchema
           _ -> do
-            declare defs
+            NamedSchema _ schema <- recordSchema
             return (unnamed schema)
     where
       (defs, NamedSchema _ schema) = runDeclare recordSchema mempty
