@@ -1,6 +1,15 @@
 Unreleased
 ----------
 
+3.2.1
+-----
+
+- Support aeson-2.0.3.
+- Support GHC-9.2 (doctests still fail).
+
+3.2.0
+-----
+
 - Support aeson-2 [#34](https://github.com/biocad/openapi3/pull/34).
 - Use `SecurityDefinitions` type for `_componentsSecuritySchemes`
   [#32](https://github.com/biocad/openapi3/pull/32).
