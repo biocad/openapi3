@@ -34,7 +34,7 @@ jobs:
             allow-failure: true
           - compiler: ghc-9.0.1
             allow-failure: true
-          - compiler: ghc-8.10.4
+          - compiler: ghc-8.10.7
             allow-failure: false
           - compiler: ghc-8.8.4
             allow-failure: false
@@ -44,15 +44,9 @@ jobs:
             allow-failure: false
       fail-fast: false
     steps:
-      - name: apt
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common
-          apt-add-repository -y 'ppa:hvr/ghc'
-          apt-get update
-          apt-get install -y $CC cabal-install-3.4
-        env:
-          CC: ${{ matrix.compiler }}
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.compiler }}
       - name: Set PATH and environment variables
         run: |
           echo "$HOME/.cabal/bin" >> $GITHUB_PATH
