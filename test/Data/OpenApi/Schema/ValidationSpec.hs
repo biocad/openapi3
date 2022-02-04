@@ -301,6 +301,8 @@ instance Eq ZonedTime where
 -- Arbitrary instance for Data.Aeson.Value
 -- ========================================================================
 
+-- These instances were introduces in aeson upstream in 2.0.3
+#if !MIN_VERSION_aeson(2,0,3)
 instance Arbitrary Value where
   -- Weights are almost random
   -- Uniform oneof tends not to build complex objects cause of recursive call.
@@ -318,4 +320,5 @@ instance Arbitrary v => Arbitrary (KeyMap.KeyMap v) where
 
 instance Arbitrary Key.Key where
   arbitrary = Key.fromText <$> arbitrary
+#endif
 #endif
