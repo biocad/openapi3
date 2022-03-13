@@ -1,7 +1,11 @@
 branches: master
 
+distribution: focal
+allow-failures: >=9.2
+
 constraint-set aeson-1
   constraints: aeson <2.0
+  ghc: <9.2
 
 constraint-set aeson-2
   constraints: aeson >=2.0

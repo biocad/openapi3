@@ -28,7 +28,7 @@ tested-with:
    || ==8.8.4
    || ==8.10.7
    || ==9.0.2
-   || ==9.2.1
+   || ==9.2.2
 
 custom-setup
   setup-depends:
