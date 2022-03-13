@@ -945,10 +945,13 @@ instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s 
         case schema ^. items of
           Just (OpenApiItemsArray [_]) -> fieldSchema
           _ -> do
-            NamedSchema _ schema <- recordSchema
-            return (unnamed schema)
+            -- We have to run recordSchema instead of just using its defs,
+            -- since those can be recursive and will lead to infinite loop,
+            -- see https://github.com/biocad/openapi3/pull/37
+            NamedSchema _ schema' <- recordSchema
+            return (unnamed schema')
     where
-      (defs, NamedSchema _ schema) = runDeclare recordSchema mempty
+      (_, NamedSchema _ schema) = runDeclare recordSchema mempty
       recordSchema = gdeclareNamedSchema opts (Proxy :: Proxy (S1 s f)) s
       fieldSchema  = gdeclareNamedSchema opts (Proxy :: Proxy f) s
 
