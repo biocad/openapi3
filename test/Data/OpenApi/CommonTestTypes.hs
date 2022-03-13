@@ -863,6 +863,129 @@ singleMaybeFieldSchemaJSON = [aesonQQ|
 }
 |]
 
+-- ========================================================================
+-- Natural Language (single field data with recursive fields)
+-- ========================================================================
+
+data Predicate
+  = PredicateNoun    Noun
+  | PredicateOmitted Omitted
+  deriving (Eq, Ord, Read, Show, Generic)
+instance ToJSON Predicate
+instance ToSchema Predicate
+
+data Noun
+  = Noun
+  { nounSurf   :: LangWord
+  , nounModify :: [Modifier]
+  }
+  deriving (Eq, Ord, Read, Show, Generic)
+instance ToJSON Noun
+instance ToSchema Noun
+
+data LangWord
+  = LangWord
+  { langWordSurf :: String
+  , langWordBase :: String
+  }
+  deriving (Eq, Ord, Read, Show, Generic)
+instance ToJSON LangWord
+instance ToSchema LangWord
+
+data Modifier
+  = ModifierNoun     Noun
+  | ModifierOmitted  Omitted
+  deriving (Eq, Ord, Read, Show, Generic)
+instance ToJSON Modifier
+instance ToSchema Modifier
+
+newtype Omitted
+  = Omitted
+  { omittedModify :: [Modifier]
+  }
+  deriving (Eq, Ord, Read, Show, Generic)
+instance ToJSON Omitted
+instance ToSchema Omitted
+
+predicateSchemaDeclareJSON :: Value
+predicateSchemaDeclareJSON = [aesonQQ|
+[
+  {
+    "Predicate": {
+      "oneOf": [
+        {
+          "properties": {
+            "contents": { "$ref": "#/components/schemas/Noun" },
+            "tag": { "enum": ["PredicateNoun"], "type": "string" }
+          },
+          "required": ["tag", "contents"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "contents": { "$ref": "#/components/schemas/Omitted" },
+            "tag": { "enum": ["PredicateOmitted"], "type": "string" }
+          },
+          "required": ["tag", "contents"],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "Noun": {
+      "properties": {
+        "nounModify": {
+          "items": { "$ref": "#/components/schemas/Modifier" },
+          "type": "array"
+        },
+        "nounSurf": { "$ref": "#/components/schemas/LangWord" }
+      },
+      "required": ["nounSurf", "nounModify"],
+      "type": "object"
+    },
+    "LangWord": {
+      "properties": {
+        "langWordBase": { "type": "string" },
+        "langWordSurf": { "type": "string" }
+      },
+      "required": ["langWordSurf", "langWordBase"],
+      "type": "object"
+    },
+    "Modifier": {
+      "oneOf": [
+        {
+          "properties": {
+            "contents": { "$ref": "#/components/schemas/Noun" },
+            "tag": { "enum": ["ModifierNoun"], "type": "string" }
+          },
+          "required": ["tag", "contents"],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "contents": { "$ref": "#/components/schemas/Omitted" },
+            "tag": { "enum": ["ModifierOmitted"], "type": "string" }
+          },
+          "required": ["tag", "contents"],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "Omitted": {
+      "properties": {
+        "omittedModify": {
+          "items": { "$ref": "#/components/schemas/Modifier" },
+          "type": "array"
+        }
+      },
+      "required": ["omittedModify"],
+      "type": "object"
+    }
+  },
+  { "$ref": "#/components/schemas/Predicate" }
+]
+|]
 
 -- ========================================================================
 -- TimeOfDay
