@@ -1,6 +1,11 @@
 Unreleased
 ----------
 
+3.2.2
+-----
+
+- Fix bug with infinite recursion in GToSchema [#37](https://github.com/biocad/openapi3/pull/37).
+
 3.2.1
 -----
 
