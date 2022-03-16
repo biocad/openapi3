@@ -12,6 +12,7 @@ module Data.OpenApi.Internal.AesonUtils (
     sopSwaggerGenericToEncoding,
     sopSwaggerGenericToJSONWithOpts,
     sopSwaggerGenericParseJSON,
+    sopSwaggerGenericParseJSONWithOpts,
     -- * Options
     HasSwaggerAesonOptions(..),
     SwaggerAesonOptions,
@@ -176,6 +177,33 @@ sopSwaggerGenericToJSON'' (SwaggerAesonOptions prefix _ sub) = go
 -------------------------------------------------------------------------------
 -- FromJSON
 -------------------------------------------------------------------------------
+sopSwaggerGenericParseJSONWithOpts
+    :: forall a xs.
+        ( HasDatatypeInfo a
+        , HasSwaggerAesonOptions a
+        , All2 FromJSON (Code a)
+        , All2 Eq (Code a)
+        , Code a ~ '[xs]
+        )
+    => SwaggerAesonOptions
+    -> Value
+    -> Parser a
+sopSwaggerGenericParseJSONWithOpts opts = withObject "Swagger Record Object" $ \obj ->
+    let ps = sopSwaggerGenericParseJSON' opts obj (datatypeInfo proxy) (aesonDefaults proxy)
+    in do
+        traverse_ (parseAdditionalField obj) (opts ^. saoAdditionalPairs)
+        to <$> ps
+  where
+    proxy = Proxy :: Proxy a
+
+    parseAdditionalField :: Object -> Pair -> Parser ()
+    parseAdditionalField obj (k, v) = do
+        v' <- obj .: k
+        unless (v == v') $ fail $
+            "Additonal field don't match for key " ++ keyToString k
+            ++ ": " ++ show v
+            ++ " /= " ++ show v'
+
 
 sopSwaggerGenericParseJSON
     :: forall a xs.
@@ -187,11 +215,7 @@ sopSwaggerGenericParseJSON
         )
     => Value
     -> Parser a
-sopSwaggerGenericParseJSON = withObject "Swagger Record Object" $ \obj ->
-    let ps = sopSwaggerGenericParseJSON' opts obj (datatypeInfo proxy) (aesonDefaults proxy)
-    in do
-        traverse_ (parseAdditionalField obj) (opts ^. saoAdditionalPairs)
-        to <$> ps
+sopSwaggerGenericParseJSON = sopSwaggerGenericParseJSONWithOpts opts
   where
     proxy = Proxy :: Proxy a
     opts  = swaggerAesonOptions proxy

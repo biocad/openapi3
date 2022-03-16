@@ -14,6 +14,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TupleSections #-}
 module Data.OpenApi.Internal where
 
 import Prelude ()
@@ -52,7 +53,7 @@ import Data.OpenApi.Aeson.Compat        (deleteKey, filterWithKey, objectToList,
 import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAesonOptions (..),
                                          mkSwaggerAesonOptions, saoAdditionalPairs, saoSubObject,
                                          sopSwaggerGenericParseJSON, sopSwaggerGenericToEncoding,
-                                         sopSwaggerGenericToJSON, sopSwaggerGenericToJSONWithOpts)
+                                         sopSwaggerGenericToJSON, sopSwaggerGenericToJSONWithOpts, sopSwaggerGenericParseJSONWithOpts)
 import Data.OpenApi.Internal.Utils
 import Generics.SOP.TH                  (deriveGeneric)
 import Data.Version
@@ -661,7 +662,7 @@ data ParamLocation
   | ParamCookie
   deriving (Eq, Ord, Show, Generic, Data, Typeable)
 
-instance Hashable ParamLocation 
+instance Hashable ParamLocation
 
 type Format = Text
 
@@ -1259,15 +1260,6 @@ instance ToJSON OpenApiType where
 instance ToJSON ParamLocation where
   toJSON = genericToJSON (jsonPrefix "Param")
 
-instance ToJSON Info where
-  toJSON = genericToJSON (jsonPrefix "Info")
-
-instance ToJSON Contact where
-  toJSON = genericToJSON (jsonPrefix "Contact")
-
-instance ToJSON License where
-  toJSON = genericToJSON (jsonPrefix "License")
-
 instance ToJSON ServerVariable where
   toJSON = genericToJSON (jsonPrefix "ServerVariable")
 
@@ -1313,15 +1305,6 @@ instance FromJSON OpenApiType where
 
 instance FromJSON ParamLocation where
   parseJSON = genericParseJSON (jsonPrefix "Param")
-
-instance FromJSON Info where
-  parseJSON = genericParseJSON (jsonPrefix "Info")
-
-instance FromJSON Contact where
-  parseJSON = genericParseJSON (jsonPrefix "Contact")
-
-instance FromJSON License where
-  parseJSON = genericParseJSON (jsonPrefix "License")
 
 instance FromJSON ServerVariable where
   parseJSON = genericParseJSON (jsonPrefix "ServerVariable")
@@ -1528,6 +1511,15 @@ instance ToJSON SpecificationExtensions where
     where
       addExtPrefix = InsOrdHashMap.mapKeys ("x-" <>)
 
+instance ToJSON Info where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "Info")
+
+instance ToJSON Contact where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "Contact")
+
+instance ToJSON License where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "License")
+
 -- =======================================================================
 -- Manual FromJSON instances
 -- =======================================================================
@@ -1707,6 +1699,15 @@ instance FromJSON SpecificationExtensions where
     where
       extFieldsParser = pure . SpecificationExtensions . InsOrdHashMap.fromList . catMaybes . filterExtFields
       filterExtFields = fmap (\(k, v) -> fmap (\k' -> (k', v)) $ Text.stripPrefix "x-" (keyToText k)) . objectToList
+
+instance FromJSON Info where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "Info")
+
+instance FromJSON Contact where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "Contact")
+
+instance FromJSON License where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "License")
 
 instance HasSwaggerAesonOptions Server where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "server"
