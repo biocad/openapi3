@@ -553,6 +553,8 @@ data Param = Param
     -- the examples value SHALL override the example provided by the schema.
   , _paramExamples :: InsOrdHashMap Text (Referenced Example)
 
+  , _paramExtensions :: SpecificationExtensions
+
     -- TODO
     -- _paramContent :: InsOrdHashMap MediaType MediaTypeObject
     -- should be singleton. mutually exclusive with _paramSchema.
@@ -1715,7 +1717,7 @@ instance HasSwaggerAesonOptions OAuth2Flows where
 instance HasSwaggerAesonOptions Operation where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "operation" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Param where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "param"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "param" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions PathItem where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "pathItem" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Response where
