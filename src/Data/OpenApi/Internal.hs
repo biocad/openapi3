@@ -1263,23 +1263,11 @@ instance ToJSON OpenApiType where
 instance ToJSON ParamLocation where
   toJSON = genericToJSON (jsonPrefix "Param")
 
-instance ToJSON ServerVariable where
-  toJSON = genericToJSON (jsonPrefix "ServerVariable")
-
 instance ToJSON ApiKeyLocation where
   toJSON = genericToJSON (jsonPrefix "ApiKey")
 
 instance ToJSON ApiKeyParams where
   toJSON = genericToJSON (jsonPrefix "apiKey")
-
-instance ToJSON Tag where
-  toJSON = genericToJSON (jsonPrefix "Tag")
-
-instance ToJSON ExternalDocs where
-  toJSON = genericToJSON (jsonPrefix "ExternalDocs")
-
-instance ToJSON Xml where
-  toJSON = genericToJSON (jsonPrefix "Xml")
 
 instance ToJSON Discriminator where
   toJSON = genericToJSON (jsonPrefix "Discriminator")
@@ -1309,20 +1297,11 @@ instance FromJSON OpenApiType where
 instance FromJSON ParamLocation where
   parseJSON = genericParseJSON (jsonPrefix "Param")
 
-instance FromJSON ServerVariable where
-  parseJSON = genericParseJSON (jsonPrefix "ServerVariable")
-
 instance FromJSON ApiKeyLocation where
   parseJSON = genericParseJSON (jsonPrefix "ApiKey")
 
 instance FromJSON ApiKeyParams where
   parseJSON = genericParseJSON (jsonPrefix "apiKey")
-
-instance FromJSON Tag where
-  parseJSON = genericParseJSON (jsonPrefix "Tag")
-
-instance FromJSON ExternalDocs where
-  parseJSON = genericParseJSON (jsonPrefix "ExternalDocs")
 
 instance FromJSON Discriminator where
   parseJSON = genericParseJSON (jsonPrefix "Discriminator")
@@ -1523,6 +1502,18 @@ instance ToJSON Contact where
 instance ToJSON License where
   toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "License")
 
+instance ToJSON ServerVariable where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "ServerVariable")
+
+instance ToJSON Tag where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "Tag")
+
+instance ToJSON ExternalDocs where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "ExternalDocs")
+
+instance ToJSON Xml where
+  toJSON = sopSwaggerGenericToJSONWithOpts (mkSwaggerAesonOptions "Xml")
+
 -- =======================================================================
 -- Manual FromJSON instances
 -- =======================================================================
@@ -1682,9 +1673,6 @@ instance FromJSON (Referenced Header)   where parseJSON = referencedParseJSON "#
 instance FromJSON (Referenced Link)     where parseJSON = referencedParseJSON "#/components/links/"
 instance FromJSON (Referenced Callback) where parseJSON = referencedParseJSON "#/components/callbacks/"
 
-instance FromJSON Xml where
-  parseJSON = genericParseJSON (jsonPrefix "xml")
-
 instance FromJSON AdditionalProperties where
   parseJSON (Bool b) = pure $ AdditionalPropertiesAllowed b
   parseJSON js = AdditionalPropertiesSchema <$> parseJSON js
@@ -1711,6 +1699,18 @@ instance FromJSON Contact where
 
 instance FromJSON License where
   parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "License")
+
+instance FromJSON ServerVariable where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "ServerVariable")
+
+instance FromJSON Tag where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "Tag")
+
+instance FromJSON ExternalDocs where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "ExternalDocs")
+
+instance FromJSON Xml where
+  parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "xml")
 
 instance HasSwaggerAesonOptions Server where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "server"
