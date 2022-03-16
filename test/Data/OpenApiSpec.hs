@@ -18,6 +18,8 @@ import Data.Text (Text)
 import Data.OpenApi
 import SpecCommon
 import Test.Hspec hiding (example)
+import qualified Data.HashMap.Strict.InsOrd as InsOrdHM
+import Data.OpenApi
 
 spec :: Spec
 spec = do
@@ -69,6 +71,7 @@ infoExample = mempty
   & contact        ?~ contactExample
   & license        ?~ licenseExample
   & version        .~ "1.0.1"
+  & extensions     .~ mempty
 
 infoExampleJSON :: Value
 infoExampleJSON = [aesonQQ|
@@ -79,13 +82,16 @@ infoExampleJSON = [aesonQQ|
   "contact": {
     "name": "API Support",
     "url": "http://www.swagger.io/support",
-    "email": "support@swagger.io"
+    "email": "support@swagger.io",
+    "extensions": {}
   },
   "license": {
     "name": "Apache 2.0",
-    "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
+    "extensions": {}
   },
-  "version": "1.0.1"
+  "version": "1.0.1",
+  "extensions": {}
 }
 |]
 
@@ -98,13 +104,15 @@ contactExample = mempty
   & name  ?~ "API Support"
   & url   ?~ URL "http://www.swagger.io/support"
   & email ?~ "support@swagger.io"
+  & extensions .~ mempty
 
 contactExampleJSON :: Value
 contactExampleJSON = [aesonQQ|
 {
   "name": "API Support",
   "url": "http://www.swagger.io/support",
-  "email": "support@swagger.io"
+  "email": "support@swagger.io",
+  "extensions": {}
 }
 |]
 
@@ -115,12 +123,14 @@ contactExampleJSON = [aesonQQ|
 licenseExample :: License
 licenseExample = "Apache 2.0"
   & url ?~ URL "http://www.apache.org/licenses/LICENSE-2.0.html"
+  & extensions .~ mempty
 
 licenseExampleJSON :: Value
 licenseExampleJSON = [aesonQQ|
 {
   "name": "Apache 2.0",
-  "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+  "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
+  "extensions": {}
 }
 |]
 
@@ -152,6 +162,7 @@ operationExample = mempty
   & at 200 ?~ "Pet updated."
   & at 405 ?~ "Invalid input"
   & security .~ [SecurityRequirement [("petstore_auth", ["write:pets", "read:pets"])]]
+  & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("ext1", toJSON True)])
 
 operationExampleJSON :: Value
 operationExampleJSON = [aesonQQ|
@@ -206,7 +217,8 @@ operationExampleJSON = [aesonQQ|
         "read:pets"
       ]
     }
-  ]
+  ],
+ "x-ext1": true
 }
 |]
 
@@ -238,6 +250,7 @@ schemaSimpleModelExample = mempty
             & minimum_ ?~ 0
             & type_    ?~ OpenApiInteger
             & format   ?~ "int32" ) ]
+  & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("ext1", toJSON True)])
 
 schemaSimpleModelExampleJSON :: Value
 schemaSimpleModelExampleJSON = [aesonQQ|
@@ -255,7 +268,8 @@ schemaSimpleModelExampleJSON = [aesonQQ|
       "type": "integer"
     }
   },
-  "type": "object"
+  "type": "object",
+  "x-ext1": true
 }
 |]
 
@@ -456,15 +470,18 @@ securityDefinitionsExample :: SecurityDefinitions
 securityDefinitionsExample = SecurityDefinitions
   [ ("api_key", SecurityScheme
       { _securitySchemeType = SecuritySchemeApiKey (ApiKeyParams "api_key" ApiKeyHeader)
-      , _securitySchemeDescription = Nothing })
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = mempty })
   , ("petstore_auth", SecurityScheme
       { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
                 [ ("write:pets",  "modify pets in your account")
-                , ("read:pets", "read your pets") ] } )
-      , _securitySchemeDescription = Nothing }) ]
+                , ("read:pets", "read your pets") ]
+            , _oAuth2Extensions = mempty  } )
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = SpecificationExtensions (InsOrdHM.fromList [("ext1", toJSON True)])})]
 
 securityDefinitionsExampleJSON :: Value
 securityDefinitionsExampleJSON = [aesonQQ|
@@ -484,7 +501,8 @@ securityDefinitionsExampleJSON = [aesonQQ|
         },
         "authorizationUrl": "http://swagger.io/api/oauth/dialog"
       }
-    }
+    },
+  "x-ext1": true
   }
 }
 
@@ -497,8 +515,10 @@ oAuth2SecurityDefinitionsReadExample = SecurityDefinitions
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
-              [ ("read:pets", "read your pets") ] } )
-      , _securitySchemeDescription = Nothing })
+              [ ("read:pets", "read your pets") ]
+            , _oAuth2Extensions = mempty } )
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = mempty })
   ]
 
 oAuth2SecurityDefinitionsWriteExample :: SecurityDefinitions
@@ -508,8 +528,10 @@ oAuth2SecurityDefinitionsWriteExample = SecurityDefinitions
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
-                [ ("write:pets", "modify pets in your account") ] } )
-      , _securitySchemeDescription = Nothing })
+                [ ("write:pets", "modify pets in your account") ]
+            , _oAuth2Extensions = mempty } )
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = mempty })
   ]
 
 oAuth2SecurityDefinitionsEmptyExample :: SecurityDefinitions
@@ -599,7 +621,7 @@ emptyPathsFieldExampleJSON :: Value
 emptyPathsFieldExampleJSON = [aesonQQ|
 {
   "openapi": "3.0.0",
-  "info": {"version": "", "title": ""},
+  "info": {"version": "", "title": "", "extensions": {}},
   "paths": {},
   "components": {}
 }
@@ -614,7 +636,9 @@ swaggerExample = mempty
       & title .~ "Todo API"
       & license ?~ "MIT"
       & license._Just.url ?~ URL "http://mit.com"
+      & license . _Just . extensions .~ mempty
       & description ?~ "This is an API that tests servant-swagger support for a Todo API")
+      & extensions .~ mempty
   & paths.at "/todo/{id}" ?~ (mempty & get ?~ ((mempty :: Operation)
       & responses . at 200 ?~ Inline (mempty
           & description .~ "OK"
@@ -651,9 +675,11 @@ swaggerExampleJSON = [aesonQQ|
         "title": "Todo API",
         "license": {
             "url": "http://mit.com",
-            "name": "MIT"
+            "name": "MIT",
+            "extensions": {}
         },
-        "description": "This is an API that tests servant-swagger support for a Todo API"
+        "description": "This is an API that tests servant-swagger support for a Todo API",
+        "extensions": {}
     },
     "paths": {
         "/todo/{id}": {
@@ -713,8 +739,10 @@ petstoreExampleJSON = [aesonQQ|
     "version": "1.0.0",
     "title": "Swagger Petstore",
     "license": {
-      "name": "MIT"
-    }
+      "name": "MIT",
+      "extensions": {}
+    },
+    "extensions": {}
   },
   "servers": [
     {

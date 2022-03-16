@@ -14,6 +14,9 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import qualified Data.Text                  as T
 
 #if MIN_VERSION_aeson(2,0,0)
+filterWithKey :: (T.Text -> v -> Bool) -> KeyMap.KeyMap v -> KeyMap.KeyMap v
+filterWithKey p = KeyMap.filterWithKey (\k v -> p (keyToText k) v)
+
 deleteKey :: Key -> KeyMap.KeyMap v -> KeyMap.KeyMap v
 deleteKey = KeyMap.delete
 
@@ -44,6 +47,9 @@ lookupKey = KeyMap.lookup . Key.fromText
 hasKey :: T.Text -> KeyMap.KeyMap a -> Bool
 hasKey = KeyMap.member . Key.fromText
 #else
+filterWithKey :: (T.Text -> v -> Bool) -> HM.HashMap T.Text v -> HM.HashMap T.Text v
+filterWithKey = HM.filterWithKey
+
 deleteKey :: T.Text -> HM.HashMap T.Text v -> HM.HashMap T.Text v
 deleteKey = HM.delete
 
