@@ -659,7 +659,7 @@ data ParamLocation
   | ParamPath
     -- | Used to pass a specific cookie value to the API.
   | ParamCookie
-  deriving (Eq, Show, Generic, Data, Typeable)
+  deriving (Eq, Ord, Show, Generic, Data, Typeable)
 
 type Format = Text
 
@@ -833,6 +833,7 @@ data Header = Header
   , _headerExamples :: InsOrdHashMap Text (Referenced Example)
 
   , _headerSchema :: Maybe (Referenced Schema)
+  , _headerExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | The location of the API key.
@@ -1710,7 +1711,7 @@ instance HasSwaggerAesonOptions Server where
 instance HasSwaggerAesonOptions Components where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "components"
 instance HasSwaggerAesonOptions Header where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "header"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "header" & saoSubObject .~ ["extensions"]
 instance AesonDefaultValue p => HasSwaggerAesonOptions (OAuth2Flow p) where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2" & saoSubObject .~ ["params", "extensions"]
 instance HasSwaggerAesonOptions OAuth2Flows where
