@@ -146,7 +146,8 @@ operationExample = mempty
     & description ?~ "ID of pet that needs to be updated"
     & required ?~ True
     & in_ .~ ParamPath
-    & schema ?~ Inline (mempty & type_ ?~ OpenApiString))]
+    & schema ?~ Inline (mempty & type_ ?~ OpenApiString)
+    & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("param-extension-here", "SomeString")]))]
   & requestBody ?~ Inline (
     mempty & content . at "application/x-www-form-urlencoded" ?~ (mempty & schema ?~ (Inline (mempty
       & properties . at "petId" ?~ Inline (mempty
@@ -177,7 +178,8 @@ operationExampleJSON = [aesonQQ|
       },
       "in": "path",
       "name": "petId",
-      "description": "ID of pet that needs to be updated"
+      "description": "ID of pet that needs to be updated",
+      "x-param-extension-here": "SomeString"
     }
   ],
   "requestBody": {
