@@ -1027,7 +1027,10 @@ data AdditionalProperties
   deriving (Eq, Show, Data, Typeable)
 
 newtype SpecificationExtensions = SpecificationExtensions { _unDefs :: Definitions Value}
-  deriving (Eq, Show, Hashable, Data, Typeable, Semigroup, Monoid, SwaggerMonoid, AesonDefaultValue)
+  deriving (Eq, Show, Hashable, Data, Typeable, Semigroup, Monoid, SwaggerMonoid)
+
+instance AesonDefaultValue SpecificationExtensions where
+  defaultValue = Just (SpecificationExtensions mempty)
 
 -------------------------------------------------------------------------------
 -- Generic instances
