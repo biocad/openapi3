@@ -648,6 +648,8 @@ data ParamLocation
   | ParamCookie
   deriving (Eq, Ord, Show, Generic, Data, Typeable)
 
+instance Hashable ParamLocation 
+
 type Format = Text
 
 type ParamName = Text
