@@ -1022,7 +1022,7 @@ data AdditionalProperties
   | AdditionalPropertiesSchema (Referenced Schema)
   deriving (Eq, Show, Data, Typeable)
 
-newtype SpecificationExtensions = SpecificationExtensions {getSpecificationExtensions :: Definitions Value}
+newtype SpecificationExtensions = SpecificationExtensions { _unDefs :: Definitions Value}
   deriving (Eq, Show, Hashable, Data, Typeable, Semigroup, Monoid, SwaggerMonoid, AesonDefaultValue)
 
 -------------------------------------------------------------------------------
@@ -1490,7 +1490,7 @@ instance ToJSON Callback where
   toJSON (Callback ps) = toJSON ps
 
 instance ToJSON SpecificationExtensions where
-  toJSON = toJSON . addExtPrefix . getSpecificationExtensions
+  toJSON = toJSON . addExtPrefix . _unDefs
     where
       addExtPrefix = InsOrdHashMap.mapKeys ("x-" <>)
 

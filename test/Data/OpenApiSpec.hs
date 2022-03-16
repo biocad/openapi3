@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE LambdaCase #-}
 module Data.OpenApiSpec where
 
 import Prelude ()
@@ -15,7 +16,6 @@ import Data.HashMap.Strict (HashMap)
 import qualified Data.HashSet.InsOrd as InsOrdHS
 import Data.Text (Text)
 
-import Data.OpenApi
 import SpecCommon
 import Test.Hspec hiding (example)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHM
@@ -44,7 +44,7 @@ spec = do
     context "Todo Example" $ swaggerExample <=> swaggerExampleJSON
     context "PetStore Example" $ do
       it "decodes successfully" $ do
-        fromJSON petstoreExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: OpenApi) -> True; _ -> False)
+        fromJSON petstoreExampleJSON `shouldSatisfy` (\case Success (_ :: OpenApi) -> True; _ -> False)
       it "roundtrips: fmap toJSON . fromJSON" $ do
         (toJSON :: OpenApi -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
     context "Security schemes" $ do
@@ -149,13 +149,13 @@ operationExample = mempty
     & schema ?~ Inline (mempty & type_ ?~ OpenApiString)
     & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("param-extension-here", "SomeString")]))]
   & requestBody ?~ Inline (
-    mempty & content . at "application/x-www-form-urlencoded" ?~ (mempty & schema ?~ (Inline (mempty
+    mempty & content . at "application/x-www-form-urlencoded" ?~ (mempty & schema ?~ Inline (mempty
       & properties . at "petId" ?~ Inline (mempty
         & description ?~ "Updated name of the pet"
         & type_ ?~ OpenApiString)
       & properties . at "status" ?~ Inline (mempty
         & description ?~ "Updated status of the pet"
-        & type_ ?~ OpenApiString)))))
+        & type_ ?~ OpenApiString))))
   & at 200 ?~ "Pet updated."
   & at 405 ?~ "Invalid input"
   & security .~ [SecurityRequirement [("petstore_auth", ["write:pets", "read:pets"])]]
