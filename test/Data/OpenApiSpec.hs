@@ -67,7 +67,6 @@ infoExample = mempty
   & contact        ?~ contactExample
   & license        ?~ licenseExample
   & version        .~ "1.0.1"
-  & extensions     .~ mempty
 
 infoExampleJSON :: Value
 infoExampleJSON = [aesonQQ|
@@ -78,16 +77,13 @@ infoExampleJSON = [aesonQQ|
   "contact": {
     "name": "API Support",
     "url": "http://www.swagger.io/support",
-    "email": "support@swagger.io",
-    "extensions": {}
+    "email": "support@swagger.io"
   },
   "license": {
     "name": "Apache 2.0",
-    "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
-    "extensions": {}
+    "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
   },
-  "version": "1.0.1",
-  "extensions": {}
+  "version": "1.0.1"
 }
 |]
 
@@ -100,15 +96,13 @@ contactExample = mempty
   & name  ?~ "API Support"
   & url   ?~ URL "http://www.swagger.io/support"
   & email ?~ "support@swagger.io"
-  & extensions .~ mempty
 
 contactExampleJSON :: Value
 contactExampleJSON = [aesonQQ|
 {
   "name": "API Support",
   "url": "http://www.swagger.io/support",
-  "email": "support@swagger.io",
-  "extensions": {}
+  "email": "support@swagger.io"
 }
 |]
 
@@ -119,14 +113,12 @@ contactExampleJSON = [aesonQQ|
 licenseExample :: License
 licenseExample = "Apache 2.0"
   & url ?~ URL "http://www.apache.org/licenses/LICENSE-2.0.html"
-  & extensions .~ mempty
 
 licenseExampleJSON :: Value
 licenseExampleJSON = [aesonQQ|
 {
   "name": "Apache 2.0",
-  "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
-  "extensions": {}
+  "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
 }
 |]
 
@@ -578,7 +570,7 @@ emptyPathsFieldExampleJSON :: Value
 emptyPathsFieldExampleJSON = [aesonQQ|
 {
   "openapi": "3.0.0",
-  "info": {"version": "", "title": "", "extensions": {}},
+  "info": {"version": "", "title": ""},
   "paths": {},
   "components": {}
 }
@@ -593,9 +585,8 @@ swaggerExample = mempty
       & title .~ "Todo API"
       & license ?~ "MIT"
       & license._Just.url ?~ URL "http://mit.com"
-      & license . _Just . extensions .~ mempty
       & description ?~ "This is an API that tests servant-swagger support for a Todo API")
-      & extensions .~ mempty
+
   & paths.at "/todo/{id}" ?~ (mempty & get ?~ ((mempty :: Operation)
       & responses . at 200 ?~ Inline (mempty
           & description .~ "OK"
@@ -632,11 +623,9 @@ swaggerExampleJSON = [aesonQQ|
         "title": "Todo API",
         "license": {
             "url": "http://mit.com",
-            "name": "MIT",
-            "extensions": {}
+            "name": "MIT"
         },
-        "description": "This is an API that tests servant-swagger support for a Todo API",
-        "extensions": {}
+        "description": "This is an API that tests servant-swagger support for a Todo API"
     },
     "paths": {
         "/todo/{id}": {
@@ -696,10 +685,8 @@ petstoreExampleJSON = [aesonQQ|
     "version": "1.0.0",
     "title": "Swagger Petstore",
     "license": {
-      "name": "MIT",
-      "extensions": {}
-    },
-    "extensions": {}
+      "name": "MIT"
+    }
   },
   "servers": [
     {
