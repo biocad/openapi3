@@ -49,7 +49,7 @@ import           Text.Read             (readMaybe)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
-import Data.OpenApi.Aeson.Compat        (deleteKey, filterWithKey, objectToList, keyToText)
+import Data.OpenApi.Aeson.Compat        (deleteKey, filterKeys, objectToList, keyToText)
 import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAesonOptions (..),
                                          mkSwaggerAesonOptions, saoAdditionalPairs, saoSubObject,
                                          sopSwaggerGenericParseJSON, sopSwaggerGenericToEncoding,
@@ -1606,14 +1606,14 @@ instance FromJSON Responses where
     <$> o .:? "default"
     <*> parseJSON
       ( Object
-        ( filterWithKey (\k _ -> not $ isExt k)
-          $ deleteKey "default" o
+        ( filterKeys (not . isExt . keyToText) $
+          deleteKey "default" o
         )
       )
-    <*> case filterWithKey (\k _ -> isExt k) o of
-        exts
-          | null exts -> pure (SpecificationExtensions mempty)
-          | otherwise -> parseJSON (Object exts)
+    <*> case filterKeys (isExt . keyToText) o of
+          exts
+            | null exts -> pure (SpecificationExtensions mempty)
+            | otherwise -> parseJSON (Object exts)
 
   parseJSON _ = empty
 
@@ -1689,7 +1689,7 @@ instance FromJSON SpecificationExtensions where
   parseJSON = withObject "SpecificationExtensions" extFieldsParser
     where
       extFieldsParser = pure . SpecificationExtensions . InsOrdHashMap.fromList . catMaybes . filterExtFields
-      filterExtFields = fmap (\(k, v) -> fmap (\k' -> (k', v)) $ Text.stripPrefix "x-" (keyToText k)) . objectToList
+      filterExtFields = fmap (\(k, v) -> (, v) <$> Text.stripPrefix "x-" (keyToText k)) . objectToList
 
 instance FromJSON Info where
   parseJSON = sopSwaggerGenericParseJSONWithOpts (mkSwaggerAesonOptions "Info")
@@ -1743,8 +1743,7 @@ instance HasSwaggerAesonOptions Schema where
 instance HasSwaggerAesonOptions OpenApiSpecVersion where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "openapi"
 instance HasSwaggerAesonOptions OpenApi where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger"
-    & saoSubObject .~ ["extensions"]
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Example where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "example" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Encoding where
