@@ -100,8 +100,9 @@ schemaGen defns schema =
           return . Object $ fromInsOrdHashMap x
 
 dereference :: Definitions a -> Referenced a -> a
-dereference _ (Inline a)               = a
-dereference defs (Ref (Reference ref)) = fromJust $ M.lookup ref defs
+dereference _ (Inline a)                       = a
+dereference defs (Ref (InternalReference ref)) = fromJust $ M.lookup ref defs
+dereference defs (Ref (ExternalReference ref)) = error $ "can't dereference external reference: " <> show ref
 
 genValue :: (ToSchema a) => Proxy a -> Gen Value
 genValue p =
