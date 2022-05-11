@@ -43,7 +43,6 @@ import           Data.Text.Encoding    (encodeUtf8)
 import           GHC.Generics          (Generic)
 import           Network.HTTP.Media    (MediaType, mainType, parameters, parseAccept, subType, (//),
                                         (/:))
-import           Network.Socket        (HostName, PortNumber)
 import           Text.Read             (readMaybe)
 
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
