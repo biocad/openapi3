@@ -933,7 +933,6 @@ petstoreExampleJSON = [aesonQQ|
 
 compositionSchemaExample :: Schema
 compositionSchemaExample = mempty
-  & type_ ?~ OpenApiObject
   & Data.OpenApi.allOf ?~ [
       Ref (Reference "Other")
     , Inline (mempty
@@ -946,7 +945,6 @@ compositionSchemaExample = mempty
 compositionSchemaExampleJSON :: Value
 compositionSchemaExampleJSON = [aesonQQ|
 {
-  "type": "object",
   "allOf": [
       {
          "$ref": "#/components/schemas/Other"

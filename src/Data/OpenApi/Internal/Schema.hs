@@ -1026,7 +1026,6 @@ gdeclareNamedSumSchema opts proxy _
   | otherwise = do
     (schemas, _) <- runWriterT declareSumSchema
     return $ unnamed $ mempty
-      & type_ ?~ OpenApiObject
       & oneOf ?~ (snd <$> schemas)
   where
     declareSumSchema = gsumToSchema opts proxy
@@ -1071,7 +1070,6 @@ gsumConToSchemaWith ref opts _ = (tag, schema)
 
           -- In the remaining cases we combine "tag" object and "contents" object using allOf.
           _ -> Inline $ mempty
-            & type_ ?~ OpenApiObject
             & allOf ?~ [Inline $ mempty
               & type_ ?~ OpenApiObject
               & required .~ (T.pack tagField : if isRecord then [] else [T.pack contentsField])

@@ -409,8 +409,7 @@ import Data.OpenApi.Internal
 --             ],
 --             "type": "object"
 --         }
---     ],
---     "type": "object"
+--     ]
 -- }
 
 -- $manipulation
