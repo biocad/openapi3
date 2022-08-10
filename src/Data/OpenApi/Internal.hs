@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -21,6 +22,9 @@ import Prelude.Compat
 import           Control.Applicative
 import           Control.Lens          ((&), (.~), (?~))
 import           Data.Aeson            hiding (Encoding)
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap     as KeyMap
+#endif
 import qualified Data.Aeson.Types      as JSON
 import           Data.Data             (Constr, Data (..), DataType, Fixity (..), Typeable,
                                         constrIndex, mkConstr, mkDataType)
@@ -46,22 +50,21 @@ import           Text.Read             (readMaybe)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
-import Generics.SOP.TH                  (deriveGeneric)
-import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToJSON
-                                        ,sopSwaggerGenericToJSONWithOpts
-                                        ,sopSwaggerGenericParseJSON
-                                        ,HasSwaggerAesonOptions(..)
-                                        ,AesonDefaultValue(..)
-                                        ,mkSwaggerAesonOptions
-                                        ,saoAdditionalPairs
-                                        ,saoSubObject)
+import Data.OpenApi.Aeson.Compat        (deleteKey)
+import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAesonOptions (..),
+                                         mkSwaggerAesonOptions, saoAdditionalPairs, saoSubObject,
+                                         sopSwaggerGenericParseJSON, sopSwaggerGenericToEncoding,
+                                         sopSwaggerGenericToJSON, sopSwaggerGenericToJSONWithOpts)
 import Data.OpenApi.Internal.Utils
 import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding
                                         ,sopSwaggerGenericToEncodingWithOpts)
+import Generics.SOP.TH                  (deriveGeneric)
 
 -- $setup
 -- >>> :seti -XDataKinds
 -- >>> import Data.Aeson
+-- >>> import Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal.Utils
 
 -- | A list of definitions that can be used in references.
 type Definitions = InsOrdHashMap Text
@@ -214,7 +217,7 @@ data Components = Components
   , _componentsExamples :: Definitions Example
   , _componentsRequestBodies :: Definitions RequestBody
   , _componentsHeaders :: Definitions Header
-  , _componentsSecuritySchemes :: Definitions SecurityScheme
+  , _componentsSecuritySchemes :: SecurityDefinitions
   , _componentsLinks :: Definitions Link
   , _componentsCallbacks :: Definitions Callback
   } deriving (Eq, Show, Generic, Data, Typeable)
@@ -361,7 +364,7 @@ data RequestBody = RequestBody
     -- | The content of the request body.
     -- The key is a media type or media type range and the value describes it.
     -- For requests that match multiple keys, only the most specific key is applicable.
-    -- e.g. @text/plain@ overrides @text/*@
+    -- e.g. @text/plain@ overrides @text/\*@
   , _requestBodyContent :: InsOrdHashMap MediaType MediaTypeObject
 
     -- | Determines if the request body is required in the request.
@@ -424,7 +427,7 @@ data Encoding = Encoding
     -- for other primitive types – @text/plain@; for object - @application/json@;
     -- for array – the default is defined based on the inner type.
     -- The value can be a specific media type (e.g. @application/json@),
-    -- a wildcard media type (e.g. @image/*@), or a comma-separated list of the two types.
+    -- a wildcard media type (e.g. @image/\*@), or a comma-separated list of the two types.
     _encodingContentType :: Maybe MediaType
 
     -- | A map allowing additional information to be provided as headers,
@@ -773,7 +776,7 @@ data Response = Response
     -- | A map containing descriptions of potential response payloads.
     -- The key is a media type or media type range and the value describes it.
     -- For responses that match multiple keys, only the most specific key is applicable.
-    -- e.g. @text/plain@ overrides @text/*@.
+    -- e.g. @text/plain@ overrides @text/\*@.
   , _responseContent :: InsOrdHashMap MediaType MediaTypeObject
 
     -- | Maps a header name to its definition.
@@ -892,20 +895,37 @@ data HttpSchemeType
 
 -- |
 --
--- >>> encode (SecuritySchemeHttp (HttpSchemeBearer Nothing))
--- "{\"scheme\":\"bearer\",\"type\":\"http\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp (HttpSchemeBearer Nothing))
+-- {
+--     "scheme": "bearer",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeHttp (HttpSchemeBearer (Just "jwt")))
--- "{\"scheme\":\"bearer\",\"type\":\"http\",\"bearerFormat\":\"jwt\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp (HttpSchemeBearer (Just "jwt")))
+-- {
+--     "bearerFormat": "jwt",
+--     "scheme": "bearer",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeHttp HttpSchemeBasic)
--- "{\"scheme\":\"basic\",\"type\":\"http\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp HttpSchemeBasic)
+-- {
+--     "scheme": "basic",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeHttp (HttpSchemeCustom "CANARY"))
--- "{\"scheme\":\"CANARY\",\"type\":\"http\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeHttp (HttpSchemeCustom "CANARY"))
+-- {
+--     "scheme": "CANARY",
+--     "type": "http"
+-- }
 --
--- >>> encode (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
--- "{\"in\":\"cookie\",\"name\":\"id\",\"type\":\"apiKey\"}"
+-- >>> BSL.putStrLn $ encodePretty (SecuritySchemeApiKey (ApiKeyParams "id" ApiKeyCookie))
+-- {
+--     "in": "cookie",
+--     "name": "id",
+--     "type": "apiKey"
+-- }
 --
 data SecuritySchemeType
   = SecuritySchemeHttp HttpSchemeType
@@ -1162,6 +1182,7 @@ instance SwaggerMonoid Response
 instance SwaggerMonoid ExternalDocs
 instance SwaggerMonoid Operation
 instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
+instance SwaggerMonoid SecurityDefinitions
 
 instance SwaggerMonoid MimeList
 deriving instance SwaggerMonoid URL
@@ -1349,8 +1370,12 @@ instance ToJSON Header where
 -- | As for nullary schema for 0-arity type constructors, see
 -- <https://github.com/GetShopTV/swagger2/issues/167>.
 --
--- >>> encode (OpenApiItemsArray [])
--- "{\"example\":[],\"items\":{},\"maxItems\":0}"
+-- >>> BSL.putStrLn $ encodePretty (OpenApiItemsArray [])
+-- {
+--     "example": [],
+--     "items": {},
+--     "maxItems": 0
+-- }
 --
 instance ToJSON OpenApiItems where
   toJSON (OpenApiItemsObject x) = object [ "items" .= x ]
@@ -1545,7 +1570,7 @@ instance FromJSON Param where
 instance FromJSON Responses where
   parseJSON (Object o) = Responses
     <$> o .:? "default"
-    <*> parseJSON (Object (HashMap.delete "default" o))
+    <*> parseJSON (Object (deleteKey "default" o))
   parseJSON _ = empty
 
 instance FromJSON Example where
@@ -1693,3 +1718,5 @@ instance AesonDefaultValue MimeList where defaultValue = Just mempty
 instance AesonDefaultValue Info
 instance AesonDefaultValue ParamLocation
 instance AesonDefaultValue Link
+instance AesonDefaultValue SecurityDefinitions where
+  defaultValue = Just mempty

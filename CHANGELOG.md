@@ -1,3 +1,33 @@
+Unreleased
+----------
+
+3.2.2
+-----
+
+- Fix bug with infinite recursion in GToSchema [#37](https://github.com/biocad/openapi3/pull/37).
+
+3.2.1
+-----
+
+- Support aeson-2.0.3.
+- Support GHC-9.2 (doctests still fail).
+
+3.2.0
+-----
+
+- Support aeson-2 [#34](https://github.com/biocad/openapi3/pull/34).
+- Use `SecurityDefinitions` type for `_componentsSecuritySchemes`
+  [#32](https://github.com/biocad/openapi3/pull/32).
+
+3.1.0
+-----
+
+- Use `format: date-time` for `ToParamSchema ZonedTime` instance (see
+  [#20](https://github.com/biocad/openapi3/pull/20)).
+- Support generating schema for any polymorphic types via `Typeable` (see
+  [#19](https://github.com/biocad/openapi3/pull/19)).
+- Allow `hashable-1.3.1`, prettify doctests (see [#18](https://github.com/biocad/openapi3/pull/18)).
+
 3.0.2.0
 -------
 

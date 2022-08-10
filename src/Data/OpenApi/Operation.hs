@@ -55,13 +55,16 @@ import qualified Data.HashSet.InsOrd as InsOrdHS
 -- >>> import Data.Proxy
 -- >>> import Data.Time
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal.Utils
 
 -- | Prepend path piece to all operations of the spec.
 -- Leading and trailing slashes are trimmed/added automatically.
 --
 -- >>> let api = (mempty :: OpenApi) & paths .~ [("/info", mempty)]
--- >>> BSL.putStrLn $ encode $ prependPath "user/{user_id}" api ^. paths
--- {"/user/{user_id}/info":{}}
+-- >>> BSL.putStrLn $ encodePretty $ prependPath "user/{user_id}" api ^. paths
+-- {
+--     "/user/{user_id}/info": {}
+-- }
 prependPath :: FilePath -> OpenApi -> OpenApi
 prependPath path = paths %~ InsOrdHashMap.mapKeys (path </>)
   where
@@ -82,10 +85,63 @@ allOperations = paths.traverse.template
 -- >>> let ok = (mempty :: Operation) & at 200 ?~ "OK"
 -- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ ok & post ?~ ok)]
 -- >>> let sub = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
--- >>> BSL.putStrLn $ encode api
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
--- >>> BSL.putStrLn $ encode $ api & operationsOf sub . at 404 ?~ "Not found"
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"Not found"},"200":{"description":"OK"}}},"post":{"responses":{"200":{"description":"OK"}}}}},"components":{}}
+-- >>> BSL.putStrLn $ encodePretty api
+-- {
+--     "components": {},
+--     "info": {
+--         "title": "",
+--         "version": ""
+--     },
+--     "openapi": "3.0.0",
+--     "paths": {
+--         "/user": {
+--             "get": {
+--                 "responses": {
+--                     "200": {
+--                         "description": "OK"
+--                     }
+--                 }
+--             },
+--             "post": {
+--                 "responses": {
+--                     "200": {
+--                         "description": "OK"
+--                     }
+--                 }
+--             }
+--         }
+--     }
+-- }
+-- >>> BSL.putStrLn $ encodePretty $ api & operationsOf sub . at 404 ?~ "Not found"
+-- {
+--     "components": {},
+--     "info": {
+--         "title": "",
+--         "version": ""
+--     },
+--     "openapi": "3.0.0",
+--     "paths": {
+--         "/user": {
+--             "get": {
+--                 "responses": {
+--                     "200": {
+--                         "description": "OK"
+--                     },
+--                     "404": {
+--                         "description": "Not found"
+--                     }
+--                 }
+--             },
+--             "post": {
+--                 "responses": {
+--                     "200": {
+--                         "description": "OK"
+--                     }
+--                 }
+--             }
+--         }
+--     }
+-- }
 operationsOf :: OpenApi -> Traversal' OpenApi Operation
 operationsOf sub = paths.itraversed.withIndex.subops
   where
@@ -123,8 +179,26 @@ applyTagsFor ops ts swag = swag
 --
 -- FIXME doc
 --
--- >>> BSL.putStrLn $ encode $ runDeclare (declareResponse "application/json" (Proxy :: Proxy Day)) mempty
--- [{"Day":{"example":"2016-07-22","format":"date","type":"string"}},{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}}}]
+-- >>> BSL.putStrLn $ encodePretty $ runDeclare (declareResponse "application/json" (Proxy :: Proxy Day)) mempty
+-- [
+--     {
+--         "Day": {
+--             "example": "2016-07-22",
+--             "format": "date",
+--             "type": "string"
+--         }
+--     },
+--     {
+--         "content": {
+--             "application/json": {
+--                 "schema": {
+--                     "$ref": "#/components/schemas/Day"
+--                 }
+--             }
+--         },
+--         "description": ""
+--     }
+-- ]
 declareResponse :: ToSchema a => MediaType -> Proxy a -> Declare (Definitions Schema) Response
 declareResponse cType proxy = do
   s <- declareSchemaRef proxy
@@ -143,8 +217,41 @@ declareResponse cType proxy = do
 --
 -- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
 -- >>> let res = declareResponse "application/json" (Proxy :: Proxy Day)
--- >>> BSL.putStrLn $ encode $ api & setResponse 200 res
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/Day"}}},"description":""}}}}},"components":{"schemas":{"Day":{"example":"2016-07-22","format":"date","type":"string"}}}}
+-- >>> BSL.putStrLn $ encodePretty $ api & setResponse 200 res
+-- {
+--     "components": {
+--         "schemas": {
+--             "Day": {
+--                 "example": "2016-07-22",
+--                 "format": "date",
+--                 "type": "string"
+--             }
+--         }
+--     },
+--     "info": {
+--         "title": "",
+--         "version": ""
+--     },
+--     "openapi": "3.0.0",
+--     "paths": {
+--         "/user": {
+--             "get": {
+--                 "responses": {
+--                     "200": {
+--                         "content": {
+--                             "application/json": {
+--                                 "schema": {
+--                                     "$ref": "#/components/schemas/Day"
+--                                 }
+--                             }
+--                         },
+--                         "description": ""
+--                     }
+--                 }
+--             }
+--         }
+--     }
+-- }
 --
 -- See also @'setResponseWith'@.
 setResponse :: HttpStatusCode -> Declare (Definitions Schema) Response -> OpenApi -> OpenApi

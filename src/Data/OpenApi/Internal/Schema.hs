@@ -42,6 +42,7 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Int
 import Data.IntSet (IntSet)
 import Data.IntMap (IntMap)
+import Data.List (sort)
 import Data.List.NonEmpty.Compat (NonEmpty)
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
@@ -63,13 +64,14 @@ import GHC.Generics
 import qualified Data.UUID.Types as UUID
 import Type.Reflection (Typeable, typeRep)
 
-import Data.OpenApi.Declare
-import Data.OpenApi.Internal
-import Data.OpenApi.Internal.ParamSchema (ToParamSchema(..))
-import Data.OpenApi.Lens hiding (name, schema)
-import qualified Data.OpenApi.Lens as Swagger
-import Data.OpenApi.SchemaOptions
-import Data.OpenApi.Internal.TypeShape
+import           Data.OpenApi.Aeson.Compat         (keyToText, objectKeys, toInsOrdHashMap)
+import           Data.OpenApi.Declare
+import           Data.OpenApi.Internal
+import           Data.OpenApi.Internal.ParamSchema (ToParamSchema (..))
+import           Data.OpenApi.Internal.TypeShape
+import           Data.OpenApi.Lens                 hiding (name, schema)
+import qualified Data.OpenApi.Lens                 as Swagger
+import           Data.OpenApi.SchemaOptions
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -134,7 +136,7 @@ rename name (NamedSchema _ schema) = NamedSchema name schema
 --
 -- instance ToSchema Coord
 -- @
-class ToSchema a where
+class Typeable a => ToSchema a where
   -- | Convert a type into an optionally named schema
   -- together with all used definitions.
   -- Note that the schema itself is included in definitions
@@ -156,13 +158,19 @@ declareSchema = fmap _namedSchemaSchema . declareNamedSchema
 --
 -- >>> toNamedSchema (Proxy :: Proxy String) ^. name
 -- Nothing
--- >>> BSL.putStrLn $ encode (toNamedSchema (Proxy :: Proxy String) ^. schema)
--- {"type":"string"}
+-- >>> BSL.putStrLn $ encodePretty (toNamedSchema (Proxy :: Proxy String) ^. schema)
+-- {
+--     "type": "string"
+-- }
 --
 -- >>> toNamedSchema (Proxy :: Proxy Day) ^. name
 -- Just "Day"
--- >>> BSL.putStrLn $ encode (toNamedSchema (Proxy :: Proxy Day) ^. schema)
--- {"example":"2016-07-22","format":"date","type":"string"}
+-- >>> BSL.putStrLn $ encodePretty (toNamedSchema (Proxy :: Proxy Day) ^. schema)
+-- {
+--     "example": "2016-07-22",
+--     "format": "date",
+--     "type": "string"
+-- }
 toNamedSchema :: ToSchema a => Proxy a -> NamedSchema
 toNamedSchema = undeclare . declareNamedSchema
 
@@ -178,22 +186,35 @@ schemaName = _namedSchemaName . toNamedSchema
 
 -- | Convert a type into a schema.
 --
--- >>> BSL.putStrLn $ encode $ toSchema (Proxy :: Proxy Int8)
--- {"maximum":127,"minimum":-128,"type":"integer"}
+-- >>> BSL.putStrLn $ encodePretty $ toSchema (Proxy :: Proxy Int8)
+-- {
+--     "maximum": 127,
+--     "minimum": -128,
+--     "type": "integer"
+-- }
 --
--- >>> BSL.putStrLn $ encode $ toSchema (Proxy :: Proxy [Day])
--- {"items":{"$ref":"#/components/schemas/Day"},"type":"array"}
+-- >>> BSL.putStrLn $ encodePretty $ toSchema (Proxy :: Proxy [Day])
+-- {
+--     "items": {
+--         "$ref": "#/components/schemas/Day"
+--     },
+--     "type": "array"
+-- }
 toSchema :: ToSchema a => Proxy a -> Schema
 toSchema = _namedSchemaSchema . toNamedSchema
 
 -- | Convert a type into a referenced schema if possible.
 -- Only named schemas can be referenced, nameless schemas are inlined.
 --
--- >>> BSL.putStrLn $ encode $ toSchemaRef (Proxy :: Proxy Integer)
--- {"type":"integer"}
+-- >>> BSL.putStrLn $ encodePretty $ toSchemaRef (Proxy :: Proxy Integer)
+-- {
+--     "type": "integer"
+-- }
 --
--- >>> BSL.putStrLn $ encode $ toSchemaRef (Proxy :: Proxy Day)
--- {"$ref":"#/components/schemas/Day"}
+-- >>> BSL.putStrLn $ encodePretty $ toSchemaRef (Proxy :: Proxy Day)
+-- {
+--     "$ref": "#/components/schemas/Day"
+-- }
 toSchemaRef :: ToSchema a => Proxy a -> Referenced Schema
 toSchemaRef = undeclare . declareSchemaRef
 
@@ -261,8 +282,15 @@ inlineAllSchemas = inlineSchemasWhen (const True)
 
 -- | Convert a type into a schema without references.
 --
--- >>> BSL.putStrLn $ encode $ toInlinedSchema (Proxy :: Proxy [Day])
--- {"items":{"example":"2016-07-22","format":"date","type":"string"},"type":"array"}
+-- >>> BSL.putStrLn $ encodePretty $ toInlinedSchema (Proxy :: Proxy [Day])
+-- {
+--     "items": {
+--         "example": "2016-07-22",
+--         "format": "date",
+--         "type": "string"
+--     },
+--     "type": "array"
+-- }
 --
 -- __WARNING:__ @'toInlinedSchema'@ will produce infinite schema
 -- when inlining recursive schemas.
@@ -295,19 +323,64 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 -- | Make an unrestrictive sketch of a @'Schema'@ based on a @'ToJSON'@ instance.
 -- Produced schema can be used for further refinement.
 --
--- >>> BSL.putStrLn $ encode $ sketchSchema "hello"
--- {"example":"hello","type":"string"}
+-- >>> BSL.putStrLn $ encodePretty $ sketchSchema "hello"
+-- {
+--     "example": "hello",
+--     "type": "string"
+-- }
 --
--- >>> BSL.putStrLn $ encode $ sketchSchema (1, 2, 3)
--- {"example":[1,2,3],"items":{"type":"number"},"type":"array"}
+-- >>> BSL.putStrLn $ encodePretty $ sketchSchema (1, 2, 3)
+-- {
+--     "example": [
+--         1,
+--         2,
+--         3
+--     ],
+--     "items": {
+--         "type": "number"
+--     },
+--     "type": "array"
+-- }
 --
--- >>> BSL.putStrLn $ encode $ sketchSchema ("Jack", 25)
--- {"example":["Jack",25],"items":[{"type":"string"},{"type":"number"}],"type":"array"}
+-- >>> BSL.putStrLn $ encodePretty $ sketchSchema ("Jack", 25)
+-- {
+--     "example": [
+--         "Jack",
+--         25
+--     ],
+--     "items": [
+--         {
+--             "type": "string"
+--         },
+--         {
+--             "type": "number"
+--         }
+--     ],
+--     "type": "array"
+-- }
 --
 -- >>> data Person = Person { name :: String, age :: Int } deriving (Generic)
 -- >>> instance ToJSON Person
--- >>> BSL.putStrLn $ encode $ sketchSchema (Person "Jack" 25)
--- {"example":{"age":25,"name":"Jack"},"required":["age","name"],"type":"object","properties":{"age":{"type":"number"},"name":{"type":"string"}}}
+-- >>> BSL.putStrLn $ encodePretty $ sketchSchema (Person "Jack" 25)
+-- {
+--     "example": {
+--         "age": 25,
+--         "name": "Jack"
+--     },
+--     "properties": {
+--         "age": {
+--             "type": "number"
+--         },
+--         "name": {
+--             "type": "string"
+--         }
+--     },
+--     "required": [
+--         "age",
+--         "name"
+--     ],
+--     "type": "object"
+-- }
 sketchSchema :: ToJSON a => a -> Schema
 sketchSchema = sketch . toJSON
   where
@@ -333,25 +406,139 @@ sketchSchema = sketch . toJSON
           _               -> Nothing
     go (Object o) = mempty
       & type_         ?~ OpenApiObject
-      & required      .~ HashMap.keys o
-      & properties    .~ fmap (Inline . go) (InsOrdHashMap.fromHashMap o)
+      & required      .~ sort (objectKeys o)
+      & properties    .~ fmap (Inline . go) (toInsOrdHashMap o)
 
 -- | Make a restrictive sketch of a @'Schema'@ based on a @'ToJSON'@ instance.
 -- Produced schema uses as much constraints as possible.
 --
--- >>> BSL.putStrLn $ encode $ sketchStrictSchema "hello"
--- {"maxLength":5,"pattern":"hello","minLength":5,"type":"string","enum":["hello"]}
+-- >>> BSL.putStrLn $ encodePretty $ sketchStrictSchema "hello"
+-- {
+--     "enum": [
+--         "hello"
+--     ],
+--     "maxLength": 5,
+--     "minLength": 5,
+--     "pattern": "hello",
+--     "type": "string"
+-- }
 --
--- >>> BSL.putStrLn $ encode $ sketchStrictSchema (1, 2, 3)
--- {"minItems":3,"uniqueItems":true,"items":[{"maximum":1,"minimum":1,"multipleOf":1,"type":"number","enum":[1]},{"maximum":2,"minimum":2,"multipleOf":2,"type":"number","enum":[2]},{"maximum":3,"minimum":3,"multipleOf":3,"type":"number","enum":[3]}],"maxItems":3,"type":"array","enum":[[1,2,3]]}
+-- >>> BSL.putStrLn $ encodePretty $ sketchStrictSchema (1, 2, 3)
+-- {
+--     "enum": [
+--         [
+--             1,
+--             2,
+--             3
+--         ]
+--     ],
+--     "items": [
+--         {
+--             "enum": [
+--                 1
+--             ],
+--             "maximum": 1,
+--             "minimum": 1,
+--             "multipleOf": 1,
+--             "type": "number"
+--         },
+--         {
+--             "enum": [
+--                 2
+--             ],
+--             "maximum": 2,
+--             "minimum": 2,
+--             "multipleOf": 2,
+--             "type": "number"
+--         },
+--         {
+--             "enum": [
+--                 3
+--             ],
+--             "maximum": 3,
+--             "minimum": 3,
+--             "multipleOf": 3,
+--             "type": "number"
+--         }
+--     ],
+--     "maxItems": 3,
+--     "minItems": 3,
+--     "type": "array",
+--     "uniqueItems": true
+-- }
 --
--- >>> BSL.putStrLn $ encode $ sketchStrictSchema ("Jack", 25)
--- {"minItems":2,"uniqueItems":true,"items":[{"maxLength":4,"pattern":"Jack","minLength":4,"type":"string","enum":["Jack"]},{"maximum":25,"minimum":25,"multipleOf":25,"type":"number","enum":[25]}],"maxItems":2,"type":"array","enum":[["Jack",25]]}
+-- >>> BSL.putStrLn $ encodePretty $ sketchStrictSchema ("Jack", 25)
+-- {
+--     "enum": [
+--         [
+--             "Jack",
+--             25
+--         ]
+--     ],
+--     "items": [
+--         {
+--             "enum": [
+--                 "Jack"
+--             ],
+--             "maxLength": 4,
+--             "minLength": 4,
+--             "pattern": "Jack",
+--             "type": "string"
+--         },
+--         {
+--             "enum": [
+--                 25
+--             ],
+--             "maximum": 25,
+--             "minimum": 25,
+--             "multipleOf": 25,
+--             "type": "number"
+--         }
+--     ],
+--     "maxItems": 2,
+--     "minItems": 2,
+--     "type": "array",
+--     "uniqueItems": true
+-- }
 --
 -- >>> data Person = Person { name :: String, age :: Int } deriving (Generic)
 -- >>> instance ToJSON Person
--- >>> BSL.putStrLn $ encode $ sketchStrictSchema (Person "Jack" 25)
--- {"minProperties":2,"required":["age","name"],"maxProperties":2,"type":"object","enum":[{"age":25,"name":"Jack"}],"properties":{"age":{"maximum":25,"minimum":25,"multipleOf":25,"type":"number","enum":[25]},"name":{"maxLength":4,"pattern":"Jack","minLength":4,"type":"string","enum":["Jack"]}}}
+-- >>> BSL.putStrLn $ encodePretty $ sketchStrictSchema (Person "Jack" 25)
+-- {
+--     "enum": [
+--         {
+--             "age": 25,
+--             "name": "Jack"
+--         }
+--     ],
+--     "maxProperties": 2,
+--     "minProperties": 2,
+--     "properties": {
+--         "age": {
+--             "enum": [
+--                 25
+--             ],
+--             "maximum": 25,
+--             "minimum": 25,
+--             "multipleOf": 25,
+--             "type": "number"
+--         },
+--         "name": {
+--             "enum": [
+--                 "Jack"
+--             ],
+--             "maxLength": 4,
+--             "minLength": 4,
+--             "pattern": "Jack",
+--             "type": "string"
+--         }
+--     },
+--     "required": [
+--         "age",
+--         "name"
+--     ],
+--     "type": "object"
+-- }
 sketchStrictSchema :: ToJSON a => a -> Schema
 sketchStrictSchema = go . toJSON
   where
@@ -383,13 +570,13 @@ sketchStrictSchema = go . toJSON
         allUnique = sz == HashSet.size (HashSet.fromList (V.toList xs))
     go js@(Object o) = mempty
       & type_         ?~ OpenApiObject
-      & required      .~ names
-      & properties    .~ fmap (Inline . go) (InsOrdHashMap.fromHashMap o)
+      & required      .~ sort names
+      & properties    .~ fmap (Inline . go) (toInsOrdHashMap o)
       & maxProperties ?~ fromIntegral (length names)
       & minProperties ?~ fromIntegral (length names)
       & enum_         ?~ [js]
       where
-        names = HashMap.keys o
+        names = objectKeys o
 
 class GToSchema (f :: * -> *) where
   gdeclareNamedSchema :: SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
@@ -424,7 +611,7 @@ instance ToSchema Scientific  where declareNamedSchema = plain . paramSchemaToSc
 instance ToSchema Double      where declareNamedSchema = plain . paramSchemaToSchema
 instance ToSchema Float       where declareNamedSchema = plain . paramSchemaToSchema
 
-instance HasResolution a => ToSchema (Fixed a) where declareNamedSchema = plain . paramSchemaToSchema
+instance (Typeable (Fixed a), HasResolution a) => ToSchema (Fixed a) where declareNamedSchema = plain . paramSchemaToSchema
 
 instance ToSchema a => ToSchema (Maybe a) where
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy a)
@@ -441,12 +628,18 @@ instance ToSchema UUID.UUID where
   declareNamedSchema p = pure $ named "UUID" $ paramSchemaToSchema p
     & example ?~ toJSON (UUID.toText UUID.nil)
 
-instance (ToSchema a, ToSchema b) => ToSchema (a, b)
-instance (ToSchema a, ToSchema b, ToSchema c) => ToSchema (a, b, c)
-instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d) => ToSchema (a, b, c, d)
-instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d, ToSchema e) => ToSchema (a, b, c, d, e)
-instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d, ToSchema e, ToSchema f) => ToSchema (a, b, c, d, e, f)
-instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d, ToSchema e, ToSchema f, ToSchema g) => ToSchema (a, b, c, d, e, f, g)
+instance (ToSchema a, ToSchema b) => ToSchema (a, b) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, ToSchema b, ToSchema c) => ToSchema (a, b, c) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d) => ToSchema (a, b, c, d) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d, ToSchema e) => ToSchema (a, b, c, d, e) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d, ToSchema e, ToSchema f) => ToSchema (a, b, c, d, e, f) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
+instance (ToSchema a, ToSchema b, ToSchema c, ToSchema d, ToSchema e, ToSchema f, ToSchema g) => ToSchema (a, b, c, d, e, f, g) where
+  declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
 
 timeSchema :: T.Text -> Schema
 timeSchema fmt = mempty
@@ -465,7 +658,7 @@ instance ToSchema LocalTime where
   declareNamedSchema _ = pure $ named "LocalTime" $ timeSchema "yyyy-mm-ddThh:MM:ss"
     & example ?~ toJSON (LocalTime (fromGregorian 2016 7 22) (TimeOfDay 7 40 0))
 
--- | Format @"date"@ corresponds to @yyyy-mm-ddThh:MM:ss(Z|+hh:MM)@ format.
+-- | Format @"date-time"@ corresponds to @yyyy-mm-ddThh:MM:ss(Z|+hh:MM)@ format.
 instance ToSchema ZonedTime where
   declareNamedSchema _ = pure $ named "ZonedTime" $ timeSchema "date-time"
     & example ?~ toJSON (ZonedTime (LocalTime (fromGregorian 2016 7 22) (TimeOfDay 7 40 0)) (hoursToTimeZone 3))
@@ -497,7 +690,7 @@ instance ToSchemaByteStringError BSL.ByteString => ToSchema BSL.ByteString where
 instance ToSchema IntSet where declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy (Set Int))
 
 -- | NOTE: This schema does not account for the uniqueness of keys.
-instance ToSchema a => ToSchema (IntMap a) where
+instance (ToSchema a) => ToSchema (IntMap a) where
   declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy [(Int, a)])
 
 instance (ToJSONKey k, ToSchema k, ToSchema v) => ToSchema (Map k v) where
@@ -553,8 +746,12 @@ instance ToSchema a => ToSchema (Identity a) where declareNamedSchema _ = declar
 
 -- | Default schema for @'Bounded'@, @'Integral'@ types.
 --
--- >>> BSL.putStrLn $ encode $ toSchemaBoundedIntegral (Proxy :: Proxy Int16)
--- {"maximum":32767,"minimum":-32768,"type":"integer"}
+-- >>> BSL.putStrLn $ encodePretty $ toSchemaBoundedIntegral (Proxy :: Proxy Int16)
+-- {
+--     "maximum": 32767,
+--     "minimum": -32768,
+--     "type": "integer"
+-- }
 toSchemaBoundedIntegral :: forall a. (Bounded a, Integral a) => Proxy a -> Schema
 toSchemaBoundedIntegral _ = mempty
   & type_ ?~ OpenApiInteger
@@ -586,8 +783,27 @@ genericDeclareNamedSchemaNewtype opts f proxy = genericNameSchema opts proxy <$>
 -- >>> instance ToSchema ButtonState
 -- >>> instance ToJSONKey ButtonState where toJSONKey = toJSONKeyText (T.pack . show)
 -- >>> type ImageUrl = T.Text
--- >>> BSL.putStrLn $ encode $ toSchemaBoundedEnumKeyMapping (Proxy :: Proxy (Map ButtonState ImageUrl))
--- {"type":"object","properties":{"Focus":{"type":"string"},"Disabled":{"type":"string"},"Active":{"type":"string"},"Neutral":{"type":"string"},"Hover":{"type":"string"}}}
+-- >>> BSL.putStrLn $ encodePretty $ toSchemaBoundedEnumKeyMapping (Proxy :: Proxy (Map ButtonState ImageUrl))
+-- {
+--     "properties": {
+--         "Active": {
+--             "type": "string"
+--         },
+--         "Disabled": {
+--             "type": "string"
+--         },
+--         "Focus": {
+--             "type": "string"
+--         },
+--         "Hover": {
+--             "type": "string"
+--         },
+--         "Neutral": {
+--             "type": "string"
+--         }
+--     },
+--     "type": "object"
+-- }
 --
 -- Note: this is only useful when @key@ is encoded with 'ToJSONKeyText'.
 -- If it is encoded with 'ToJSONKeyValue' then a regular schema for @[(key, value)]@ is used.
@@ -595,13 +811,13 @@ declareSchemaBoundedEnumKeyMapping :: forall map key value.
   (Bounded key, Enum key, ToJSONKey key, ToSchema key, ToSchema value)
   => Proxy (map key value) -> Declare (Definitions Schema) Schema
 declareSchemaBoundedEnumKeyMapping _ = case toJSONKey :: ToJSONKeyFunction key of
-  ToJSONKeyText keyToText _ -> objectSchema keyToText
+  ToJSONKeyText getKey _ -> objectSchema getKey
   ToJSONKeyValue _ _ -> declareSchema (Proxy :: Proxy [(key, value)])
   where
-    objectSchema keyToText = do
+    objectSchema getKey = do
       valueRef <- declareSchemaRef (Proxy :: Proxy value)
       let allKeys   = [minBound..maxBound :: key]
-          mkPair k  =  (keyToText k, valueRef)
+          mkPair k  =  (keyToText $ getKey k, valueRef)
       return $ mempty
         & type_ ?~ OpenApiObject
         & properties .~ InsOrdHashMap.fromList (map mkPair allKeys)
@@ -614,8 +830,27 @@ declareSchemaBoundedEnumKeyMapping _ = case toJSONKey :: ToJSONKeyFunction key o
 -- >>> instance ToSchema ButtonState
 -- >>> instance ToJSONKey ButtonState where toJSONKey = toJSONKeyText (T.pack . show)
 -- >>> type ImageUrl = T.Text
--- >>> BSL.putStrLn $ encode $ toSchemaBoundedEnumKeyMapping (Proxy :: Proxy (Map ButtonState ImageUrl))
--- {"type":"object","properties":{"Focus":{"type":"string"},"Disabled":{"type":"string"},"Active":{"type":"string"},"Neutral":{"type":"string"},"Hover":{"type":"string"}}}
+-- >>> BSL.putStrLn $ encodePretty $ toSchemaBoundedEnumKeyMapping (Proxy :: Proxy (Map ButtonState ImageUrl))
+-- {
+--     "properties": {
+--         "Active": {
+--             "type": "string"
+--         },
+--         "Disabled": {
+--             "type": "string"
+--         },
+--         "Focus": {
+--             "type": "string"
+--         },
+--         "Hover": {
+--             "type": "string"
+--         },
+--         "Neutral": {
+--             "type": "string"
+--         }
+--     },
+--     "type": "object"
+-- }
 --
 -- Note: this is only useful when @key@ is encoded with 'ToJSONKeyText'.
 -- If it is encoded with 'ToJSONKeyValue' then a regular schema for @[(key, value)]@ is used.
@@ -625,7 +860,7 @@ toSchemaBoundedEnumKeyMapping :: forall map key value.
 toSchemaBoundedEnumKeyMapping = flip evalDeclare mempty . declareSchemaBoundedEnumKeyMapping
 
 -- | A configurable generic @'Schema'@ creator.
-genericDeclareSchema :: (Generic a, GToSchema (Rep a)) =>
+genericDeclareSchema :: (Generic a, GToSchema (Rep a), Typeable a) =>
   SchemaOptions -> Proxy a -> Declare (Definitions Schema) Schema
 genericDeclareSchema opts proxy = _namedSchemaSchema <$> genericDeclareNamedSchema opts proxy
 
@@ -633,9 +868,24 @@ genericDeclareSchema opts proxy = _namedSchemaSchema <$> genericDeclareNamedSche
 -- This function applied to @'defaultSchemaOptions'@
 -- is used as the default for @'declareNamedSchema'@
 -- when the type is an instance of @'Generic'@.
-genericDeclareNamedSchema :: forall a. (Generic a, GToSchema (Rep a)) =>
+--
+-- Default implementation will use the name from 'Typeable' instance, including concrete
+-- instantioations of type variables.
+--
+-- For example:
+--
+-- >>> _namedSchemaName $ undeclare $ genericDeclareNamedSchema defaultSchemaOptions (Proxy :: Proxy (Either Int Bool))
+-- Just "Either_Int_Bool"
+genericDeclareNamedSchema :: forall a. (Generic a, GToSchema (Rep a), Typeable a) =>
   SchemaOptions -> Proxy a -> Declare (Definitions Schema) NamedSchema
-genericDeclareNamedSchema opts _ = gdeclareNamedSchema opts (Proxy :: Proxy (Rep a)) mempty
+genericDeclareNamedSchema opts _ =
+  rename (Just $ T.pack name) <$> gdeclareNamedSchema opts (Proxy :: Proxy (Rep a)) mempty
+  where
+    unspace ' ' = '_'
+    unspace x = x
+    orig = fmap unspace $ show $ typeRep @a
+    name = datatypeNameModifier opts orig
+
 
 -- | Derive a 'Generic'-based name for a datatype and assign it to a given 'Schema'.
 genericNameSchema :: forall a d f.
@@ -695,10 +945,13 @@ instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s 
         case schema ^. items of
           Just (OpenApiItemsArray [_]) -> fieldSchema
           _ -> do
-            declare defs
-            return (unnamed schema)
+            -- We have to run recordSchema instead of just using its defs,
+            -- since those can be recursive and will lead to infinite loop,
+            -- see https://github.com/biocad/openapi3/pull/37
+            NamedSchema _ schema' <- recordSchema
+            return (unnamed schema')
     where
-      (defs, NamedSchema _ schema) = runDeclare recordSchema mempty
+      (_, NamedSchema _ schema) = runDeclare recordSchema mempty
       recordSchema = gdeclareNamedSchema opts (Proxy :: Proxy (S1 s f)) s
       fieldSchema  = gdeclareNamedSchema opts (Proxy :: Proxy f) s
 
@@ -861,58 +1114,13 @@ data Proxy2 a b = Proxy2
 
 data Proxy3 a b c = Proxy3
 
--- | This class allows to generate schemas for polymorphic types (of kind @Type -> Type@).
---
--- Intended usage:
---
--- >>> data Foo a = Foo { foo :: a, bar :: Int } deriving (Eq, Show, Generic, ToSchema1)
--- >>> :{
--- instance (ToSchema a, Typeable a) => ToSchema (Foo a) where
---   declareNamedSchema _ = declareNamedSchema @(BySchema1 Foo a) Proxy
--- :}
---
--- >>> toNamedSchema @(Foo Int) Proxy ^. name
--- Just "Foo_Int"
--- >>> toNamedSchema @(Foo Bool) Proxy ^. name
--- Just "Foo_Bool"
--- >>> toNamedSchema @(Foo (Foo T.Text)) Proxy ^. name
--- Just "Foo_(Foo_Text)"
-class ToSchema1 (f :: * -> *) where
-  declareNamedSchema1 :: (Generic (f a), GToSchema (Rep (f a)), ToSchema a) => Proxy f -> Proxy a -> Declare (Definitions Schema) NamedSchema
-
-  -- It would be cleaner to have GToSchema constraint only on default signature and not in the class method
-  -- above, however sadly GHC does not like it.
-  default declareNamedSchema1 :: forall a. (ToSchema a, Generic (f a), GToSchema (Rep (f a))) => Proxy f -> Proxy a -> Declare (Definitions Schema) NamedSchema
-  declareNamedSchema1 _ _ = genericDeclareNamedSchema @(f a) defaultSchemaOptions Proxy
-
-{- | For GHC 8.6+ it's more convenient to use @DerivingVia@ to derive instances of 'ToSchema'
-using 'ToSchema1' instance, like this:
-
-#if __GLASGOW_HASKELL__ >= 806
->>> data Foo a = Foo { foo :: a, bar :: Int } deriving (Eq, Show, Generic, ToSchema1)
->>> deriving via BySchema1 Foo a instance (ToSchema a, Typeable a) => ToSchema (Foo a)
-#else
-> data Foo a = Foo { foo :: a, bar :: Int } deriving (Eq, Show, Generic, ToSchema1)
-> deriving via BySchema1 Foo a instance (ToSchema a, Typeable a) => ToSchema (Foo a)
-#endif
--}
-newtype BySchema1 f a = BySchema1 (f a)
-
-instance (ToSchema1 f, Generic (f a), GToSchema (Rep (f a)), Typeable (f a), ToSchema a) => ToSchema (BySchema1 f a) where
-  declareNamedSchema _ = do
-    sch <- declareNamedSchema1 @f @a Proxy Proxy
-    let tName = T.replace " " "_" $ T.pack $ show $ typeRep @(f a)
-    return $ rename (Just tName) sch
-
 {- $setup
 >>> import Data.OpenApi
 >>> import Data.Aeson (encode)
 >>> import Data.Aeson.Types (toJSONKeyText)
+>>> import Data.OpenApi.Internal.Utils
 >>> :set -XScopedTypeVariables
 >>> :set -XDeriveAnyClass
 >>> :set -XStandaloneDeriving
 >>> :set -XTypeApplications
-#if __GLASGOW_HASKELL__ >= 806
->>> :set -XDerivingVia
-#endif
 -}

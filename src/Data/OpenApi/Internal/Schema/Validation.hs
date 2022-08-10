@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wall                  #-}
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE FlexibleInstances          #-}
@@ -31,11 +32,14 @@ import           Control.Lens                        hiding (allOf)
 import           Control.Monad                       (forM, forM_, when)
 
 import           Data.Aeson                          hiding (Result)
-import           Data.Aeson.Encode.Pretty            (encodePretty)
+#if MIN_VERSION_aeson(2,0,0)
+import qualified Data.Aeson.KeyMap as KeyMap
+#endif
 import           Data.Foldable                       (for_, sequenceA_,
                                                       traverse_)
+#if !MIN_VERSION_aeson(2,0,0)
 import           Data.HashMap.Strict                 (HashMap)
-import qualified Data.HashMap.Strict                 as HashMap
+#endif
 import qualified Data.HashMap.Strict.InsOrd          as InsOrdHashMap
 import qualified "unordered-containers" Data.HashSet as HashSet
 import           Data.Maybe                          (fromMaybe)
@@ -48,10 +52,12 @@ import qualified Data.Text.Lazy.Encoding             as TL
 import           Data.Vector                         (Vector)
 import qualified Data.Vector                         as Vector
 
-import           Data.OpenApi.Declare
-import           Data.OpenApi.Internal
-import           Data.OpenApi.Internal.Schema
-import           Data.OpenApi.Lens
+import Data.OpenApi.Aeson.Compat    (hasKey, keyToText, lookupKey, objectToList)
+import Data.OpenApi.Declare
+import Data.OpenApi.Internal
+import Data.OpenApi.Internal.Schema
+import Data.OpenApi.Internal.Utils
+import Data.OpenApi.Lens
 
 -- | Validate @'ToJSON'@ instance matches @'ToSchema'@ for a given value.
 -- This can be used with QuickCheck to ensure those instances are coherent:
@@ -103,33 +109,33 @@ validateToJSONWithPatternChecker checker = validateJSONWithPatternChecker checke
 -- <BLANKLINE>
 -- Swagger Schema:
 -- {
+--     "properties": {
+--         "name": {
+--             "type": "string"
+--         },
+--         "phone": {
+--             "$ref": "#/components/schemas/Phone"
+--         }
+--     },
 --     "required": [
 --         "name",
 --         "phone"
 --     ],
---     "type": "object",
---     "properties": {
---         "phone": {
---             "$ref": "#/components/schemas/Phone"
---         },
---         "name": {
---             "type": "string"
---         }
---     }
+--     "type": "object"
 -- }
 -- <BLANKLINE>
 -- Swagger Description Context:
 -- {
 --     "Phone": {
---         "required": [
---             "value"
---         ],
---         "type": "object",
 --         "properties": {
 --             "value": {
 --                 "type": "string"
 --             }
---         }
+--         },
+--         "required": [
+--             "value"
+--         ],
+--         "type": "object"
 --     }
 -- }
 -- <BLANKLINE>
@@ -366,10 +372,16 @@ validateArray xs = do
     len = Vector.length xs
     allUnique = len == HashSet.size (HashSet.fromList (Vector.toList xs))
 
-validateObject :: HashMap Text Value -> Validation Schema ()
+validateObject ::
+#if MIN_VERSION_aeson(2,0,0)
+  KeyMap.KeyMap Value
+#else
+  HashMap Text Value
+#endif
+  -> Validation Schema ()
 validateObject o = withSchema $ \sch ->
   case sch ^. discriminator of
-    Just (Discriminator pname types) -> case fromJSON <$> HashMap.lookup pname o of
+    Just (Discriminator pname types) -> case fromJSON <$> lookupKey pname o of
       Just (Success pvalue) ->
         let ref = fromMaybe pvalue $ InsOrdHashMap.lookup pvalue types
         -- TODO ref may be name or reference
@@ -388,15 +400,15 @@ validateObject o = withSchema $ \sch ->
       validateRequired
       validateProps
   where
-    size = fromIntegral (HashMap.size o)
+    size = fromIntegral (length o)
 
     validateRequired = withSchema $ \sch -> traverse_ validateReq (sch ^. required)
     validateReq n =
-      when (not (HashMap.member n o)) $
+      when (not (hasKey n o)) $
         invalid ("property " ++ show n ++ " is required, but not found in " ++ show (encode o))
 
     validateProps = withSchema $ \sch -> do
-      for_ (HashMap.toList o) $ \(k, v) ->
+      for_ (objectToList o) $ \(keyToText -> k, v) ->
         case v of
           Null | not (k `elem` (sch ^. required)) -> valid  -- null is fine for non-required property
           _ ->

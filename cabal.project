@@ -1,2 +1,4 @@
 packages: .
 tests: true
+
+allow-newer: http-media:base

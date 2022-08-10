@@ -138,6 +138,7 @@ import Data.OpenApi.Internal
 -- >>> import Data.Proxy
 -- >>> import GHC.Generics
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal.Utils
 -- >>> :set -XDeriveGeneric
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XOverloadedLists
@@ -154,8 +155,16 @@ import Data.OpenApi.Internal
 --
 -- In this library you can use @'mempty'@ for a default/empty value. For instance:
 --
--- >>> BSL.putStrLn $ encode (mempty :: OpenApi)
--- {"openapi":"3.0.0","info":{"version":"","title":""},"components":{}}
+-- >>> BSL.putStrLn $ encodePretty (mempty :: OpenApi)
+-- {
+--     "components": {},
+--     "info": {
+--         "title": "",
+--         "version": ""
+--     },
+--     "openapi": "3.0.0",
+--     "paths": {}
+-- }
 --
 -- As you can see some spec properties (e.g. @"version"@) are there even when the spec is empty.
 -- That is because these properties are actually required ones.
@@ -163,13 +172,20 @@ import Data.OpenApi.Internal
 -- You /should/ always override the default (empty) value for these properties,
 -- although it is not strictly necessary:
 --
--- >>> BSL.putStrLn $ encode mempty { _infoTitle = "Todo API", _infoVersion = "1.0" }
--- {"version":"1.0","title":"Todo API"}
+-- >>> BSL.putStrLn $ encodePretty mempty { _infoTitle = "Todo API", _infoVersion = "1.0" }
+-- {
+--     "title": "Todo API",
+--     "version": "1.0"
+-- }
 --
 -- You can merge two values using @'mappend'@ or its infix version @('<>')@:
 --
--- >>> BSL.putStrLn $ encode $ mempty { _infoTitle = "Todo API" } <> mempty { _infoVersion = "1.0" }
--- {"version":"1.0","title":"Todo API"}
+-- >>> BSL.putStrLn $ encodePretty $ mempty { _infoTitle = "Todo API" } <> mempty { _infoVersion = "1.0" }
+-- {
+--     "title": "Todo API",
+--     "version": "1.0"
+-- }
+
 --
 -- This can be useful for combining specifications of endpoints into a whole API specification:
 --
@@ -195,14 +211,48 @@ import Data.OpenApi.Internal
 -- make it fairly simple to construct/modify any part of the specification:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: OpenApi)
+-- BSL.putStrLn $ encodePretty $ (mempty :: OpenApi)
 --   & components . schemas .~ [ ("User", mempty & type_ ?~ OpenApiString) ]
 --   & paths .~
 --     [ ("/user", mempty & get ?~ (mempty
 --         & at 200 ?~ ("OK" & _Inline.content.at "application/json" ?~ (mempty & schema ?~ Ref (Reference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}
--- {"openapi":"3.0.0","info":{"version":"","title":""},"paths":{"/user":{"get":{"responses":{"404":{"description":"User info not found"},"200":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/User"}}},"description":"OK"}}}}},"components":{"schemas":{"User":{"type":"string"}}}}
+-- {
+--     "components": {
+--         "schemas": {
+--             "User": {
+--                 "type": "string"
+--             }
+--         }
+--     },
+--     "info": {
+--         "title": "",
+--         "version": ""
+--     },
+--     "openapi": "3.0.0",
+--     "paths": {
+--         "/user": {
+--             "get": {
+--                 "responses": {
+--                     "200": {
+--                         "content": {
+--                             "application/json": {
+--                                 "schema": {
+--                                     "$ref": "#/components/schemas/User"
+--                                 }
+--                             }
+--                         },
+--                         "description": "OK"
+--                     },
+--                     "404": {
+--                         "description": "User info not found"
+--                     }
+--                 }
+--             }
+--         }
+--     }
+-- }
 --
 -- In the snippet above we declare an API with a single path @/user@. This path provides method @GET@
 -- which produces @application/json@ output. It should respond with code @200@ and body specified
@@ -214,23 +264,34 @@ import Data.OpenApi.Internal
 -- common field is @'description'@. Many components of a Swagger specification
 -- can have descriptions, and you can use the same name for them:
 --
--- >>> BSL.putStrLn $ encode $ (mempty :: Response) & description .~ "No content"
--- {"description":"No content"}
+-- >>> BSL.putStrLn $ encodePretty $ (mempty :: Response) & description .~ "No content"
+-- {
+--     "description": "No content"
+-- }
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Schema)
+-- BSL.putStrLn $ encodePretty $ (mempty :: Schema)
 --   & type_       ?~ OpenApiBoolean
 --   & description ?~ "To be or not to be"
 -- :}
--- {"type":"boolean","description":"To be or not to be"}
+-- {
+--     "description": "To be or not to be",
+--     "type": "boolean"
+-- }
 --
 -- Additionally, to simplify working with @'Response'@, both @'Operation'@ and @'Responses'@
 -- have direct access to it via @'at' code@. Example:
 --
 -- >>> :{
--- BSL.putStrLn $ encode $ (mempty :: Operation)
+-- BSL.putStrLn $ encodePretty $ (mempty :: Operation)
 --   & at 404 ?~ "Not found"
 -- :}
--- {"responses":{"404":{"description":"Not found"}}}
+-- {
+--     "responses": {
+--         "404": {
+--             "description": "Not found"
+--         }
+--     }
+-- }
 --
 -- You might've noticed that @'type_'@ has an extra underscore in its name
 -- compared to, say, @'description'@ field accessor.
@@ -277,10 +338,27 @@ import Data.OpenApi.Internal
 -- >>> data Person = Person { name :: String, age :: Integer } deriving Generic
 -- >>> instance ToJSON Person
 -- >>> instance ToSchema Person
--- >>> BSL.putStrLn $ encode (Person "David" 28)
--- {"age":28,"name":"David"}
--- >>> BSL.putStrLn $ encode $ toSchema (Proxy :: Proxy Person)
--- {"required":["name","age"],"type":"object","properties":{"age":{"type":"integer"},"name":{"type":"string"}}}
+-- >>> BSL.putStrLn $ encodePretty (Person "David" 28)
+-- {
+--     "age": 28,
+--     "name": "David"
+-- }
+-- >>> BSL.putStrLn $ encodePretty $ toSchema (Proxy :: Proxy Person)
+-- {
+--     "properties": {
+--         "age": {
+--             "type": "integer"
+--         },
+--         "name": {
+--             "type": "string"
+--         }
+--     },
+--     "required": [
+--         "name",
+--         "age"
+--     ],
+--     "type": "object"
+-- }
 --
 -- This package implements OpenAPI 3.0 spec, which supports @oneOf@ in schemas, allowing any sum types
 -- to be faithfully represented. All sum encodings supported by @aeson@ are supported here as well, with
@@ -291,8 +369,50 @@ import Data.OpenApi.Internal
 -- >>> data Error = ErrorNoUser { userId :: Int } | ErrorAccessDenied { requiredPermission :: String } deriving Generic
 -- >>> instance ToJSON Error
 -- >>> instance ToSchema Error
--- >>> BSL.putStrLn $ encode $ toSchema (Proxy :: Proxy Error)
--- {"oneOf":[{"required":["userId","tag"],"type":"object","properties":{"tag":{"type":"string","enum":["ErrorNoUser"]},"userId":{"maximum":9223372036854775807,"minimum":-9223372036854775808,"type":"integer"}}},{"required":["requiredPermission","tag"],"type":"object","properties":{"tag":{"type":"string","enum":["ErrorAccessDenied"]},"requiredPermission":{"type":"string"}}}],"type":"object"}
+-- >>> BSL.putStrLn $ encodePretty $ toSchema (Proxy :: Proxy Error)
+-- {
+--     "oneOf": [
+--         {
+--             "properties": {
+--                 "tag": {
+--                     "enum": [
+--                         "ErrorNoUser"
+--                     ],
+--                     "type": "string"
+--                 },
+--                 "userId": {
+--                     "maximum": 9223372036854775807,
+--                     "minimum": -9223372036854775808,
+--                     "type": "integer"
+--                 }
+--             },
+--             "required": [
+--                 "userId",
+--                 "tag"
+--             ],
+--             "type": "object"
+--         },
+--         {
+--             "properties": {
+--                 "requiredPermission": {
+--                     "type": "string"
+--                 },
+--                 "tag": {
+--                     "enum": [
+--                         "ErrorAccessDenied"
+--                     ],
+--                     "type": "string"
+--                 }
+--             },
+--             "required": [
+--                 "requiredPermission",
+--                 "tag"
+--             ],
+--             "type": "object"
+--         }
+--     ],
+--     "type": "object"
+-- }
 
 -- $manipulation
 -- Sometimes you have to work with an imported or generated @'Swagger'@.

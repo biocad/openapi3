@@ -25,6 +25,8 @@ import           Test.QuickCheck                         (arbitrary)
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Property
 
+import Data.OpenApi.Aeson.Compat (fromInsOrdHashMap)
+
 -- | Note: 'schemaGen' may 'error', if schema type is not specified,
 -- and cannot be inferred.
 schemaGen :: Definitions Schema -> Schema -> Gen Value
@@ -95,7 +97,7 @@ schemaGen defns schema =
               return . M.fromList $ zip additionalKeys (repeat . schemaGen defns $ dereference defns addlSchema)
             _                                      -> return []
           x <- sequence $ gens <> additionalGens
-          return . Object $ M.toHashMap x
+          return . Object $ fromInsOrdHashMap x
 
 dereference :: Definitions a -> Referenced a -> a
 dereference _ (Inline a)               = a

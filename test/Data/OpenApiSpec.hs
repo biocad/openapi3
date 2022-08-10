@@ -45,6 +45,10 @@ spec = do
         fromJSON petstoreExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: OpenApi) -> True; _ -> False)
       it "roundtrips: fmap toJSON . fromJSON" $ do
         (toJSON :: OpenApi -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
+    context "Security schemes" $ do
+      it "merged correctly" $ do
+        let merged = oAuth2SecurityDefinitionsReadOpenApi <> oAuth2SecurityDefinitionsWriteOpenApi
+        merged `shouldBe` oAuth2SecurityDefinitionsOpenApi
 
 main :: IO ()
 main = hspec spec
@@ -441,7 +445,7 @@ responsesDefinitionExampleJSON = [aesonQQ|
 |]
 
 -- =======================================================================
--- Responses Definition object
+-- Security Definition object
 -- =======================================================================
 
 securityDefinitionsExample :: SecurityDefinitions
@@ -526,6 +530,18 @@ oAuth2SecurityDefinitionsExampleJSON = [aesonQQ|
   }
 }
 |]
+
+oAuth2SecurityDefinitionsReadOpenApi :: OpenApi
+oAuth2SecurityDefinitionsReadOpenApi =
+  mempty & components . securitySchemes .~ oAuth2SecurityDefinitionsReadExample
+
+oAuth2SecurityDefinitionsWriteOpenApi :: OpenApi
+oAuth2SecurityDefinitionsWriteOpenApi =
+  mempty & components . securitySchemes .~ oAuth2SecurityDefinitionsWriteExample
+
+oAuth2SecurityDefinitionsOpenApi :: OpenApi
+oAuth2SecurityDefinitionsOpenApi =
+  mempty & components . securitySchemes .~ oAuth2SecurityDefinitionsExample
 
 -- =======================================================================
 -- Swagger object
