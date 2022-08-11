@@ -24,6 +24,7 @@ import           Control.Lens          ((&), (.~), (?~))
 import           Data.Aeson            hiding (Encoding)
 #if MIN_VERSION_aeson(2,0,0)
 import qualified Data.Aeson.KeyMap     as KeyMap
+import qualified Data.Aeson.Key        as KeyMap
 #endif
 import qualified Data.Aeson.Types      as JSON
 import           Data.Data             (Constr, Data (..), DataType, Fixity (..), Typeable,
@@ -50,7 +51,7 @@ import           Text.Read             (readMaybe)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
-import Data.OpenApi.Aeson.Compat        (deleteKey)
+import Data.OpenApi.Aeson.Compat        (deleteKey, keyToText, filterWithKey, objectToList)
 import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAesonOptions (..),
                                          mkSwaggerAesonOptions, saoAdditionalPairs, saoSubObject,
                                          sopSwaggerGenericParseJSON, sopSwaggerGenericToEncoding,
@@ -1374,9 +1375,9 @@ instance ToJSON SecurityScheme where
 
 instance ToJSON Schema where
   toJSON = sopSwaggerGenericToJSONWithOpts $
-      mkSwaggerAesonOptions "schema" & saoSubObject ?~ ["items", "extensions"]
+      mkSwaggerAesonOptions "schema" & saoSubObject .~ ["items", "extensions"]
   toEncoding = sopSwaggerGenericToEncodingWithOpts $
-      mkSwaggerAesonOptions "schema" & saoSubObject ?~ ["items", "extensions"]
+      mkSwaggerAesonOptions "schema" & saoSubObject .~ ["items", "extensions"]
 
 instance ToJSON Header where
   toJSON = sopSwaggerGenericToJSON
@@ -1593,20 +1594,14 @@ instance FromJSON Param where
 instance FromJSON Responses where
   parseJSON (Object o) = Responses
     <$> o .:? "default"
-<<<<<<< HEAD
-    <*> parseJSON (Object (deleteKey "default" o))
-=======
-    <*> parseJSON (Object (HashMap.filterWithKey (\k _ -> not $ isExt k)
-                            $ HashMap.delete "default" o))
-    <*> case HashMap.filterWithKey (\k _ -> isExt k) o of
-          exts | HashMap.null exts -> pure (SpecificationExtensions mempty)
+    <*> parseJSON (Object (filterWithKey (\k _ -> not $ isExt k)
+                            $ deleteKey "default" o))
+    <*> case filterWithKey (\k _ -> isExt k) o of
+          exts | null exts -> pure (SpecificationExtensions mempty)
                | otherwise -> parseJSON (Object exts)
->>>>>>> Made SubObjects as List and Added extensions for following
   parseJSON _ = empty
 
-isExt :: Text -> Bool
-isExt = Text.isPrefixOf "x-"
-
+isExt = Text.isPrefixOf "x-" . keyToText
 
 instance FromJSON Example where
   parseJSON = sopSwaggerGenericParseJSON
@@ -1686,7 +1681,7 @@ instance FromJSON SpecificationExtensions where
   parseJSON = withObject "SpecificationExtensions" extFieldsParser
     where
       extFieldsParser = pure . SpecificationExtensions . InsOrdHashMap.fromList . catMaybes . filterExtFields
-      filterExtFields = fmap (\(k,v) -> fmap (\k' -> (k',v)) $ Text.stripPrefix "x-" k) . HashMap.toList
+      filterExtFields = fmap (\(k,v) -> fmap (\k' -> (k',v)) $ Text.stripPrefix "x-" $ keyToText k) . objectToList
 
 instance HasSwaggerAesonOptions Server where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "server" & saoSubObject .~ ["extensions"]

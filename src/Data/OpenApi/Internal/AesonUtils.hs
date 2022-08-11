@@ -155,13 +155,8 @@ sopSwaggerGenericToJSON'' (SwaggerAesonOptions prefix _ sub) = go
     go :: (All ToJSON ys, All Eq ys) => NP I ys -> NP FieldInfo ys -> NP Maybe ys -> [Pair]
     go  Nil Nil Nil = []
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
-<<<<<<< HEAD
-        | Just name' == sub = case json of
-              Object m -> objectToList m ++ rest
-=======
         | name' `elem` sub = case json of
-              Object m -> HM.toList m ++ rest
->>>>>>> Made SubObjects as List and Added extensions for following
+              Object m -> objectToList m ++ rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show json
         -- If default value: omit it.
@@ -318,13 +313,8 @@ sopSwaggerGenericToEncoding'' (SwaggerAesonOptions prefix _ sub) = go
     go :: (All ToJSON ys, All Eq ys) => NP I ys -> NP FieldInfo ys -> NP Maybe ys -> Series
     go  Nil Nil Nil = mempty
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
-<<<<<<< HEAD
-        | Just name' == sub = case toJSON x of
-              Object m -> pairsToSeries (objectToList m) <> rest
-=======
         | name' `elem` sub = case toJSON x of
-              Object m -> pairsToSeries (HM.toList m) <> rest
->>>>>>> Made SubObjects as List and Added extensions for following
+              Object m -> pairsToSeries (objectToList m) <> rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show (toJSON x)
         -- If default value: omit it.

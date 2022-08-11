@@ -171,7 +171,6 @@ declareSchema = fmap _namedSchemaSchema . declareNamedSchema
 --     "format": "date",
 --     "type": "string"
 -- }
->>>>>>> Fixed the tests
 toNamedSchema :: ToSchema a => Proxy a -> NamedSchema
 toNamedSchema = undeclare . declareNamedSchema
 
