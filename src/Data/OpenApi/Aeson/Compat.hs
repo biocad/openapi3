@@ -78,6 +78,6 @@ lookupKey = HM.lookup
 hasKey :: T.Text -> HM.HashMap T.Text a -> Bool
 hasKey = HM.member
 
-filterWithKey :: (T.Text -> v -> Bool) -> HashMap T.Text v -> HashMap T.Text v 
+filterWithKey :: (T.Text -> v -> Bool) -> HM.HashMap T.Text v -> HM.HashMap T.Text v
 filterWithKey = HM.filterWithKey
 #endif
