@@ -1266,7 +1266,10 @@ instance ToJSONKey MediaType where
   toJSONKey = JSON.toJSONKeyText (Text.pack . show)
 
 instance (Eq p, ToJSON p, AesonDefaultValue p) => ToJSON (OAuth2Flow p) where
-  toJSON = sopSwaggerGenericToJSON
+  toJSON a = sopSwaggerGenericToJSON a &
+    if InsOrdHashMap.null (_oAuth2Scopes a)
+    then (<+> object ["scopes" .= object []])
+    else id
   toEncoding = sopSwaggerGenericToEncoding
 
 instance ToJSON OAuth2Flows where

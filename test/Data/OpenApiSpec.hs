@@ -36,6 +36,7 @@ spec = do
   describe "Responses Definition Object" $ responsesDefinitionExample <=> responsesDefinitionExampleJSON
   describe "Security Definitions Object" $ securityDefinitionsExample <=> securityDefinitionsExampleJSON
   describe "OAuth2 Security Definitions with merged Scope" $ oAuth2SecurityDefinitionsExample <=> oAuth2SecurityDefinitionsExampleJSON
+  describe "OAuth2 Security Definitions with empty Scope" $ oAuth2SecurityDefinitionsEmptyExample <=> oAuth2SecurityDefinitionsEmptyExampleJSON
   describe "Composition Schema Example" $ compositionSchemaExample <=> compositionSchemaExampleJSON
   describe "Swagger Object" $ do
     context "Example with no paths" $ emptyPathsFieldExample <=> emptyPathsFieldExampleJSON
@@ -47,7 +48,7 @@ spec = do
         (toJSON :: OpenApi -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
     context "Security schemes" $ do
       it "merged correctly" $ do
-        let merged = oAuth2SecurityDefinitionsReadOpenApi <> oAuth2SecurityDefinitionsWriteOpenApi
+        let merged = oAuth2SecurityDefinitionsReadOpenApi <> oAuth2SecurityDefinitionsWriteOpenApi <> oAuth2SecurityDefinitionsEmptyOpenApi
         merged `shouldBe` oAuth2SecurityDefinitionsOpenApi
 
 main :: IO ()
@@ -508,10 +509,22 @@ oAuth2SecurityDefinitionsWriteExample = SecurityDefinitions
       , _securitySchemeDescription = Nothing })
   ]
 
+oAuth2SecurityDefinitionsEmptyExample :: SecurityDefinitions
+oAuth2SecurityDefinitionsEmptyExample = SecurityDefinitions
+  [ ("petstore_auth", SecurityScheme
+      { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
+            { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
+            , _oAath2RefreshUrl = Nothing
+            , _oAuth2Scopes = []
+            } )
+      , _securitySchemeDescription = Nothing })
+  ]
+
 oAuth2SecurityDefinitionsExample :: SecurityDefinitions
 oAuth2SecurityDefinitionsExample =
   oAuth2SecurityDefinitionsWriteExample <>
-  oAuth2SecurityDefinitionsReadExample
+  oAuth2SecurityDefinitionsReadExample <>
+  oAuth2SecurityDefinitionsEmptyExample
 
 oAuth2SecurityDefinitionsExampleJSON :: Value
 oAuth2SecurityDefinitionsExampleJSON = [aesonQQ|
@@ -531,6 +544,21 @@ oAuth2SecurityDefinitionsExampleJSON = [aesonQQ|
 }
 |]
 
+oAuth2SecurityDefinitionsEmptyExampleJSON :: Value
+oAuth2SecurityDefinitionsEmptyExampleJSON = [aesonQQ|
+{
+  "petstore_auth": {
+    "type": "oauth2",
+    "flows": {
+      "implicit": {
+        "scopes": {},
+        "authorizationUrl": "http://swagger.io/api/oauth/dialog"
+      }
+    }
+  }
+}
+|]
+
 oAuth2SecurityDefinitionsReadOpenApi :: OpenApi
 oAuth2SecurityDefinitionsReadOpenApi =
   mempty & components . securitySchemes .~ oAuth2SecurityDefinitionsReadExample
@@ -538,6 +566,10 @@ oAuth2SecurityDefinitionsReadOpenApi =
 oAuth2SecurityDefinitionsWriteOpenApi :: OpenApi
 oAuth2SecurityDefinitionsWriteOpenApi =
   mempty & components . securitySchemes .~ oAuth2SecurityDefinitionsWriteExample
+
+oAuth2SecurityDefinitionsEmptyOpenApi :: OpenApi
+oAuth2SecurityDefinitionsEmptyOpenApi =
+  mempty & components . securitySchemes .~ oAuth2SecurityDefinitionsEmptyExample
 
 oAuth2SecurityDefinitionsOpenApi :: OpenApi
 oAuth2SecurityDefinitionsOpenApi =
