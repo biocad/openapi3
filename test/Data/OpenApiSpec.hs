@@ -39,7 +39,10 @@ spec = do
   describe "OAuth2 Security Definitions with empty Scope" $ oAuth2SecurityDefinitionsEmptyExample <=> oAuth2SecurityDefinitionsEmptyExampleJSON
   describe "Composition Schema Example" $ compositionSchemaExample <=> compositionSchemaExampleJSON
   describe "Swagger Object" $ do
-    context "Example with no paths" $ emptyPathsFieldExample <=> emptyPathsFieldExampleJSON
+    context "Example with no paths" $ do 
+      emptyPathsFieldExample <=> emptyPathsFieldExampleJSON
+      it "fails to parse a spec with a wrong Openapi spec version" $ do
+        (fromJSON wrongVersionExampleJSON :: Result OpenApi) `shouldBe` Error "The provided version 3.0.4 is out of the allowed range >=3.0.0 && <=3.0.3"
     context "Todo Example" $ swaggerExample <=> swaggerExampleJSON
     context "PetStore Example" $ do
       it "decodes successfully" $ do
@@ -582,6 +585,16 @@ oAuth2SecurityDefinitionsOpenApi =
 emptyPathsFieldExample :: OpenApi
 emptyPathsFieldExample = mempty
 
+wrongVersionExampleJSON :: Value
+wrongVersionExampleJSON = [aesonQQ|
+{
+  "openapi": "3.0.4",
+  "info": {"version": "", "title": ""},
+  "paths": {},
+  "components": {}
+}
+|]
+
 emptyPathsFieldExampleJSON :: Value
 emptyPathsFieldExampleJSON = [aesonQQ|
 {
@@ -695,7 +708,7 @@ swaggerExampleJSON = [aesonQQ|
 petstoreExampleJSON :: Value
 petstoreExampleJSON = [aesonQQ|
 {
-  "openapi": "3.0.0",
+  "openapi": "3.0.3",
   "info": {
     "version": "1.0.0",
     "title": "Swagger Petstore",

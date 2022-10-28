@@ -56,6 +56,9 @@ import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAeson
                                          sopSwaggerGenericToJSON, sopSwaggerGenericToJSONWithOpts)
 import Data.OpenApi.Internal.Utils
 import Generics.SOP.TH                  (deriveGeneric)
+import Data.Version
+import Control.Monad (unless)
+import Text.ParserCombinators.ReadP (readP_to_S)
 
 -- $setup
 -- >>> :seti -XDataKinds
@@ -99,6 +102,9 @@ data OpenApi = OpenApi
 
     -- | Additional external documentation.
   , _openApiExternalDocs :: Maybe ExternalDocs
+
+  , -- | The spec of OpenApi this spec adheres to. Must be between 3.0.0 and 3.0.3
+    _openApiOpenapi :: OpenApiSpecVersion
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | The object provides metadata about the API.
@@ -962,6 +968,8 @@ data AdditionalProperties
   | AdditionalPropertiesSchema (Referenced Schema)
   deriving (Eq, Show, Data, Typeable)
 
+newtype OpenApiSpecVersion = OpenApiSpecVersion {getVersion :: Version} deriving (Eq, Show, Generic, Data, Typeable)
+
 -------------------------------------------------------------------------------
 -- Generic instances
 -------------------------------------------------------------------------------
@@ -984,11 +992,19 @@ deriveGeneric ''OpenApi
 deriveGeneric ''Example
 deriveGeneric ''Encoding
 deriveGeneric ''Link
+deriveGeneric ''OpenApiSpecVersion
 
 -- =======================================================================
 -- Monoid instances
 -- =======================================================================
 
+instance Semigroup OpenApiSpecVersion where
+  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b 
+  
+instance Monoid OpenApiSpecVersion where
+  mempty = OpenApiSpecVersion (makeVersion [3,0,0])
+  mappend = (<>)
+  
 instance Semigroup OpenApi where
   (<>) = genericMappend
 instance Monoid OpenApi where
@@ -1126,6 +1142,7 @@ instance SwaggerMonoid ExternalDocs
 instance SwaggerMonoid Operation
 instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
 instance SwaggerMonoid SecurityDefinitions
+instance SwaggerMonoid OpenApiSpecVersion
 
 instance SwaggerMonoid MimeList
 deriving instance SwaggerMonoid URL
@@ -1257,6 +1274,9 @@ instance FromJSON OAuth2AuthorizationCodeFlow where
 -- =======================================================================
 -- Manual ToJSON instances
 -- =======================================================================
+
+instance ToJSON OpenApiSpecVersion where 
+  toJSON (OpenApiSpecVersion v)= toJSON . showVersion $ v
 
 instance ToJSON MediaType where
   toJSON = toJSON . show
@@ -1424,6 +1444,23 @@ instance ToJSON Callback where
 -- =======================================================================
 -- Manual FromJSON instances
 -- =======================================================================
+
+instance FromJSON OpenApiSpecVersion where
+  parseJSON = withText "OpenApiSpecVersion" $ \str ->
+            let validatedVersion :: Either String Version
+                validatedVersion = do
+                  parsedVersion <- readVersion str 
+                  upperBound <- readVersion "3.0.3" -- Latest known version that works with the spec
+                  lowerBound <- readVersion "3.0.0"
+                  unless ((parsedVersion >= lowerBound) && (parsedVersion <= upperBound)) $ Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=3.0.0 && <=3.0.3")
+                  return parsedVersion
+             in 
+              either fail (return . OpenApiSpecVersion) validatedVersion
+    where
+    readVersion :: Text -> Either String Version
+    readVersion v = case readP_to_S parseVersion (Text.unpack v) of 
+      [] -> Left $ "Failed to parse as a version string " <> Text.unpack v
+      solutions -> Right (fst . last $ solutions)
 
 instance FromJSON MediaType where
   parseJSON = withText "MediaType" $ \str ->
@@ -1594,8 +1631,10 @@ instance HasSwaggerAesonOptions SecurityScheme where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject ?~ "type"
 instance HasSwaggerAesonOptions Schema where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject ?~ "paramSchema"
+instance HasSwaggerAesonOptions OpenApiSpecVersion where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "openapi"
 instance HasSwaggerAesonOptions OpenApi where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoAdditionalPairs .~ [("openapi", "3.0.0")]
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger"
 instance HasSwaggerAesonOptions Example where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "example"
 instance HasSwaggerAesonOptions Encoding where
@@ -1604,6 +1643,9 @@ instance HasSwaggerAesonOptions Encoding where
 instance HasSwaggerAesonOptions Link where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "link"
 
+instance AesonDefaultValue Version where 
+  defaultValue = Just (makeVersion [3,0,0])
+instance AesonDefaultValue OpenApiSpecVersion
 instance AesonDefaultValue Server
 instance AesonDefaultValue Components
 instance AesonDefaultValue OAuth2ImplicitFlow
