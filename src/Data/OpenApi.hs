@@ -119,6 +119,7 @@ module Data.OpenApi (
   -- ** Miscellaneous
   MimeList(..),
   URL(..),
+  SpecificationExtensions(..),
 ) where
 
 import Data.OpenApi.Lens
@@ -184,7 +185,6 @@ import Data.OpenApi.Internal
 --     "title": "Todo API",
 --     "version": "1.0"
 -- }
-
 --
 -- This can be useful for combining specifications of endpoints into a whole API specification:
 --
@@ -412,7 +412,6 @@ import Data.OpenApi.Internal
 --     ],
 --     "type": "object"
 -- }
-
 -- $manipulation
 -- Sometimes you have to work with an imported or generated @'Swagger'@.
 -- For instance, <servant-swagger http://hackage.haskell.org/package/servant-swagger> generates basic @'Swagger'@
