@@ -1402,6 +1402,15 @@ instance ToJSON OpenApiItems where
     ]
   toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
 
+  toEncoding (OpenApiItemsObject x) = pairs ("items" .= x )
+  toEncoding (OpenApiItemsArray  []) = pairs
+    (
+       "items" .= JSON.emptyObject
+    <> "maxItems" .= (0 :: Int)
+    <> "example" .= JSON.emptyArray
+    )
+  toEncoding (OpenApiItemsArray  x) = pairs ( "items" .= x )
+
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
   toEncoding = sopSwaggerGenericToEncoding
@@ -1504,6 +1513,9 @@ instance ToJSON Callback where
 
 instance ToJSON SpecificationExtensions where
   toJSON = toJSON . addExtPrefix . getSpecificationExtensions
+    where
+      addExtPrefix = InsOrdHashMap.mapKeys ("x-" <>)
+  toEncoding = toEncoding . addExtPrefix . getSpecificationExtensions
     where
       addExtPrefix = InsOrdHashMap.mapKeys ("x-" <>)
 
