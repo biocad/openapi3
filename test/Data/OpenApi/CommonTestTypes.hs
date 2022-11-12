@@ -472,11 +472,12 @@ ispairSchemaJSON :: Value
 ispairSchemaJSON = [aesonQQ|
 {
   "type": "array",
-  "items":
-    [
+  "items": {
+    "oneOf": [
       { "type": "integer" },
       { "type": "string"  }
-    ],
+    ]
+  },
   "minItems": 2,
   "maxItems": 2
 }

@@ -1339,7 +1339,10 @@ instance ToJSON OpenApiItems where
     , "maxItems" .= (0 :: Int)
     , "example" .= Array mempty
     ]
-  toJSON (OpenApiItemsArray  x) = object [ "items" .= x ]
+  toJSON (OpenApiItemsArray  x) = object [ "items" .= 
+                                            toJSON (swaggerMempty { _schemaOneOf = Just x
+                                                                  })
+                                         ]
 
 instance ToJSON Components where
   toJSON = sopSwaggerGenericToJSON
@@ -1476,8 +1479,12 @@ instance FromJSON Header where
 instance FromJSON OpenApiItems where
   parseJSON js@(Object obj)
       | null obj  = pure $ OpenApiItemsArray [] -- Nullary schema.
-      | otherwise = OpenApiItemsObject <$> parseJSON js
-  parseJSON js@(Array _)  = OpenApiItemsArray  <$> parseJSON js
+      | otherwise = do
+          refSchema <- parseJSON js
+          case refSchema of
+            ( Inline Schema { _schemaOneOf = Just schemas }) 
+                -> pure $ OpenApiItemsArray schemas
+            r   -> pure $ OpenApiItemsObject r
   parseJSON _ = empty
 
 instance FromJSON Components where

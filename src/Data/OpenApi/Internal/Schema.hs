@@ -348,14 +348,16 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --         "Jack",
 --         25
 --     ],
---     "items": [
---         {
---             "type": "string"
---         },
---         {
---             "type": "number"
---         }
---     ],
+--     "items": {
+--         "oneOf": [
+--             {
+--                 "type": "string"
+--             },
+--             {
+--                 "type": "number"
+--             }
+--         ]
+--     },
 --     "type": "array"
 -- }
 --
@@ -432,35 +434,37 @@ sketchSchema = sketch . toJSON
 --             3
 --         ]
 --     ],
---     "items": [
---         {
---             "enum": [
---                 1
---             ],
---             "maximum": 1,
---             "minimum": 1,
---             "multipleOf": 1,
---             "type": "number"
---         },
---         {
---             "enum": [
---                 2
---             ],
---             "maximum": 2,
---             "minimum": 2,
---             "multipleOf": 2,
---             "type": "number"
---         },
---         {
---             "enum": [
---                 3
---             ],
---             "maximum": 3,
---             "minimum": 3,
---             "multipleOf": 3,
---             "type": "number"
---         }
---     ],
+--     "items": {
+--         "oneOf": [
+--             {
+--                 "enum": [
+--                     1
+--                 ],
+--                 "maximum": 1,
+--                 "minimum": 1,
+--                 "multipleOf": 1,
+--                 "type": "number"
+--             },
+--             {
+--                 "enum": [
+--                     2
+--                 ],
+--                 "maximum": 2,
+--                 "minimum": 2,
+--                 "multipleOf": 2,
+--                 "type": "number"
+--             },
+--             {
+--                 "enum": [
+--                     3
+--                 ],
+--                 "maximum": 3,
+--                 "minimum": 3,
+--                 "multipleOf": 3,
+--                 "type": "number"
+--             }
+--         ]
+--     },
 --     "maxItems": 3,
 --     "minItems": 3,
 --     "type": "array",
@@ -475,26 +479,28 @@ sketchSchema = sketch . toJSON
 --             25
 --         ]
 --     ],
---     "items": [
---         {
---             "enum": [
---                 "Jack"
---             ],
---             "maxLength": 4,
---             "minLength": 4,
---             "pattern": "Jack",
---             "type": "string"
---         },
---         {
---             "enum": [
---                 25
---             ],
---             "maximum": 25,
---             "minimum": 25,
---             "multipleOf": 25,
---             "type": "number"
---         }
---     ],
+--     "items": {
+--         "oneOf": [
+--             {
+--                 "enum": [
+--                     "Jack"
+--                 ],
+--                 "maxLength": 4,
+--                 "minLength": 4,
+--                 "pattern": "Jack",
+--                 "type": "string"
+--             },
+--             {
+--                 "enum": [
+--                     25
+--                 ],
+--                 "maximum": 25,
+--                 "minimum": 25,
+--                 "multipleOf": 25,
+--                 "type": "number"
+--             }
+--         ]
+--     },
 --     "maxItems": 2,
 --     "minItems": 2,
 --     "type": "array",
