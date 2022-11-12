@@ -230,7 +230,7 @@ schemaSimpleModelExample = mempty
   & required .~ [ "name" ]
   & properties .~
       [ ("name", Inline (mempty & type_ ?~ OpenApiString))
-      , ("address", Ref (Reference "Address"))
+      , ("address", Ref (InternalReference "Address"))
       , ("age", Inline $ mempty
             & minimum_ ?~ 0
             & type_    ?~ OpenApiInteger
@@ -967,7 +967,7 @@ compositionSchemaExample :: Schema
 compositionSchemaExample = mempty
   & type_ ?~ OpenApiObject
   & Data.OpenApi.allOf ?~ [
-      Ref (Reference "Other")
+      Ref (InternalReference "Other")
     , Inline (mempty
              & type_ ?~ OpenApiObject
              & properties .~

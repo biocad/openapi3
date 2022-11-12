@@ -63,6 +63,8 @@ makeFields ''Link
 makePrisms ''SecuritySchemeType
 -- ** 'Referenced' prisms
 makePrisms ''Referenced
+-- ** 'Reference prisms
+makePrisms ''Reference
 
 -- ** 'OpenApiItems' prisms
 

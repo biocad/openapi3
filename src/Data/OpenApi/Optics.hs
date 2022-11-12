@@ -26,7 +26,7 @@
 --   & #components % #schemas .~ [ ("User", mempty & #type ?~ OpenApiString) ]
 --   & #paths .~
 --     [ ("/user", mempty & #get ?~ (mempty
---         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (Reference "User")))
+--         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (InternalReference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}
 -- {

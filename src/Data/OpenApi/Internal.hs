@@ -44,6 +44,7 @@ import           GHC.Generics          (Generic)
 import           Network.HTTP.Media    (MediaType, mainType, parameters, parseAccept, subType, (//),
                                         (/:))
 import           Network.Socket        (HostName, PortNumber)
+import           Network.URI           (URI, parseURIReference, uriToString)
 import           Text.Read             (readMaybe)
 
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
@@ -943,8 +944,13 @@ data ExternalDocs = ExternalDocs
 instance Hashable ExternalDocs
 
 -- | A simple object to allow referencing other definitions in the specification.
--- It can be used to reference parameters and responses that are defined at the top level for reuse.
-newtype Reference = Reference { getReference :: Text }
+-- It can be used to reference parameters and responses that are defined at the top level for reuse
+-- or for referencing definitions from external schemas via a URI.
+data Reference 
+  = -- | For referencing definitions from within the current OpenAPI schema.
+    InternalReference Text
+    -- | For referencing definitions from external schemas.
+  | ExternalReference URI
   deriving (Eq, Show, Data, Typeable)
 
 data Referenced a
@@ -1395,10 +1401,12 @@ instance ToJSON SecurityDefinitions where
   toJSON (SecurityDefinitions sd) = toJSON sd
 
 instance ToJSON Reference where
-  toJSON (Reference ref) = object [ "$ref" .= ref ]
+  toJSON (InternalReference ref) = object [ "$ref" .= ref ]
+  toJSON (ExternalReference uri) = object [ "$ref" .= uriToString id uri "" ]
 
 referencedToJSON :: ToJSON a => Text -> Referenced a -> Value
-referencedToJSON prefix (Ref (Reference ref)) = object [ "$ref" .= (prefix <> ref) ]
+referencedToJSON prefix (Ref (InternalReference ref)) = object [ "$ref" .= (prefix <> ref) ]
+referencedToJSON prefix (Ref (ExternalReference uri)) = object [ "$ref" .= uriToString id uri "" ]
 referencedToJSON _ (Inline x) = toJSON x
 
 instance ToJSON (Referenced Schema)   where toJSON = referencedToJSON "#/components/schemas/"
@@ -1526,7 +1534,14 @@ instance FromJSON Link where
   parseJSON = sopSwaggerGenericParseJSON
 
 instance FromJSON Reference where
-  parseJSON (Object o) = Reference <$> o .: "$ref"
+  parseJSON (Object o) = do 
+    ref <- o .: "$ref"
+    if "#" `Text.isPrefixOf` ref 
+      then pure $ InternalReference ref
+      else 
+        let refError = fail "expected $ref to be either a URI or a fragment"
+         in maybe refError (pure . ExternalReference) . parseURIReference $ Text.unpack ref
+
   parseJSON _ = empty
 
 referencedParseJSON :: FromJSON a => Text -> Value -> JSON.Parser (Referenced a)
@@ -1538,8 +1553,10 @@ referencedParseJSON prefix js@(Object o) = do
   where
     parseRef s = do
       case Text.stripPrefix prefix s of
-        Nothing     -> fail $ "expected $ref of the form \"" <> Text.unpack prefix <> "*\", but got " <> show s
-        Just suffix -> pure (Reference suffix)
+        Nothing -> 
+          let refError = fail $ "expected $ref to be either a URI, or of the form \"" <> Text.unpack prefix <> "*\", but got " <> show s
+           in maybe refError (pure . ExternalReference) . parseURIReference $ Text.unpack s
+        Just suffix -> pure (InternalReference suffix)
 referencedParseJSON _ _ = fail "referenceParseJSON: not an object"
 
 instance FromJSON (Referenced Schema)   where parseJSON = referencedParseJSON "#/components/schemas/"
