@@ -43,6 +43,9 @@ lookupKey = KeyMap.lookup . Key.fromText
 
 hasKey :: T.Text -> KeyMap.KeyMap a -> Bool
 hasKey = KeyMap.member . Key.fromText
+
+filterKeys :: (Key -> Bool) -> KeyMap.KeyMap a -> KeyMap.KeyMap a
+filterKeys p = KeyMap.filterWithKey (\key _ -> p key)
 #else
 deleteKey :: T.Text -> HM.HashMap T.Text v -> HM.HashMap T.Text v
 deleteKey = HM.delete
@@ -73,4 +76,7 @@ lookupKey = HM.lookup
 
 hasKey :: T.Text -> HM.HashMap T.Text a -> Bool
 hasKey = HM.member
+
+filterKeys :: (T.Text -> Bool) -> HM.HashMap T.Text a -> HM.HashMap T.Text a
+filterKeys p = HM.filterWithKey (\key _ -> p key)
 #endif
