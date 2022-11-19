@@ -93,6 +93,13 @@ unname (NamedSchema _ schema) = unnamed schema
 rename :: Maybe T.Text -> NamedSchema -> NamedSchema
 rename name (NamedSchema _ schema) = NamedSchema name schema
 
+-- $setup
+-- >>> import Data.Aeson.Types (toJSONKeyText)
+-- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal
+-- >>> import Data.OpenApi.Internal.Utils (encodePretty)
+-- >>> import Data.OpenApi.Lens (name, schema)
+
 -- | Convert a type into @'Schema'@.
 --
 -- An example type and instance:

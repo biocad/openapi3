@@ -137,10 +137,13 @@ import Data.OpenApi.Internal
 -- >>> import Data.Proxy
 -- >>> import GHC.Generics
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal
+-- >>> import Data.OpenApi.Internal.Schema
+-- >>> import qualified Data.HashMap.Strict.InsOrd as IOHM
 -- >>> import Data.OpenApi.Internal.Utils
+-- >>> import Data.OpenApi.Lens
 -- >>> :set -XDeriveGeneric
 -- >>> :set -XOverloadedStrings
--- >>> :set -XOverloadedLists
 -- >>> :set -fno-warn-missing-methods
 
 -- $howto
@@ -211,9 +214,9 @@ import Data.OpenApi.Internal
 --
 -- >>> :{
 -- BSL.putStrLn $ encodePretty $ (mempty :: OpenApi)
---   & components . schemas .~ [ ("User", mempty & type_ ?~ OpenApiString) ]
+--   & components . schemas .~ IOHM.fromList [ ("User", mempty & type_ ?~ OpenApiString) ]
 --   & paths .~
---     [ ("/user", mempty & get ?~ (mempty
+--     IOHM.fromList [ ("/user", mempty & get ?~ (mempty
 --         & at 200 ?~ ("OK" & _Inline.content.at "application/json" ?~ (mempty & schema ?~ Ref (Reference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}

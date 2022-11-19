@@ -148,6 +148,7 @@ test-suite doctests
   hs-source-dirs:   test
   main-is:          doctests.hs
   type:             exitcode-stdio-1.0
+  build-depends:    base, openapi3
 
 executable example
   hs-source-dirs:   examples
