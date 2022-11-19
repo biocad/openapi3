@@ -28,7 +28,7 @@ import Control.Lens hiding (allOf)
 import Data.Data.Lens (template)
 
 import Control.Monad
-import Control.Monad.Writer
+import Control.Monad.Writer hiding (First, Last)
 import Data.Aeson (Object (..), SumEncoding (..), ToJSON (..), ToJSONKey (..),
                    ToJSONKeyFunction (..), Value (..))
 import Data.Char
@@ -50,6 +50,7 @@ import Data.Proxy
 import Data.Scientific (Scientific)
 import Data.Fixed (Fixed, HasResolution, Pico)
 import Data.Set (Set)
+import Data.Semigroup
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import Data.Time
@@ -91,6 +92,13 @@ unname (NamedSchema _ schema) = unnamed schema
 
 rename :: Maybe T.Text -> NamedSchema -> NamedSchema
 rename name (NamedSchema _ schema) = NamedSchema name schema
+
+-- $setup
+-- >>> import Data.Aeson.Types (toJSONKeyText)
+-- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import Data.OpenApi.Internal
+-- >>> import Data.OpenApi.Internal.Utils (encodePretty)
+-- >>> import Data.OpenApi.Lens (name, schema)
 
 -- | Convert a type into @'Schema'@.
 --

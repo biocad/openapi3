@@ -32,6 +32,12 @@ jobs:
     strategy:
       matrix:
         include:
+          # Added manually - no 9.4 in haskell-ci yet
+          - compiler: ghc-9.4.2
+            compilerKind: ghc
+            compilerVersion: 9.4.2
+            setup-method: ghcup
+            allow-failure: true
           - compiler: ghc-9.2.2
             compilerKind: ghc
             compilerVersion: 9.2.2

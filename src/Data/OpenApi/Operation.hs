@@ -55,12 +55,13 @@ import qualified Data.HashSet.InsOrd as InsOrdHS
 -- >>> import Data.Proxy
 -- >>> import Data.Time
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import qualified Data.HashMap.Strict.InsOrd as IOHM
 -- >>> import Data.OpenApi.Internal.Utils
 
 -- | Prepend path piece to all operations of the spec.
 -- Leading and trailing slashes are trimmed/added automatically.
 --
--- >>> let api = (mempty :: OpenApi) & paths .~ [("/info", mempty)]
+-- >>> let api = (mempty :: OpenApi) & paths .~ IOHM.fromList [("/info", mempty)]
 -- >>> BSL.putStrLn $ encodePretty $ prependPath "user/{user_id}" api ^. paths
 -- {
 --     "/user/{user_id}/info": {}
@@ -83,8 +84,8 @@ allOperations = paths.traverse.template
 -- by both path and method.
 --
 -- >>> let ok = (mempty :: Operation) & at 200 ?~ "OK"
--- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ ok & post ?~ ok)]
--- >>> let sub = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
+-- >>> let api = (mempty :: OpenApi) & paths .~ IOHM.fromList [("/user", mempty & get ?~ ok & post ?~ ok)]
+-- >>> let sub = (mempty :: OpenApi) & paths .~ IOHM.fromList [("/user", mempty & get ?~ mempty)]
 -- >>> BSL.putStrLn $ encodePretty api
 -- {
 --     "components": {},
@@ -215,7 +216,7 @@ declareResponse cType proxy = do
 --
 -- Example:
 --
--- >>> let api = (mempty :: OpenApi) & paths .~ [("/user", mempty & get ?~ mempty)]
+-- >>> let api = (mempty :: OpenApi) & paths .~ IOHM.fromList [("/user", mempty & get ?~ mempty)]
 -- >>> let res = declareResponse "application/json" (Proxy :: Proxy Day)
 -- >>> BSL.putStrLn $ encodePretty $ api & setResponse 200 res
 -- {
