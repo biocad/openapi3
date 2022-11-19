@@ -103,9 +103,17 @@ data OpenApi = OpenApi
     -- | Additional external documentation.
   , _openApiExternalDocs :: Maybe ExternalDocs
 
-  , -- | The spec of OpenApi this spec adheres to. Must be between 3.0.0 and 3.0.3
+  , -- | The spec of OpenApi this spec adheres to. Must be between 'lowerOpenApiSpecVersion' and 'upperOpenApiSpecVersion'
     _openApiOpenapi :: OpenApiSpecVersion
   } deriving (Eq, Show, Generic, Data, Typeable)
+
+-- | This is the lower version of the OpenApi Spec this library can parse or produce
+lowerOpenApiSpecVersion :: Version
+lowerOpenApiSpecVersion = makeVersion [3, 0, 0]
+
+-- | This is the upper version of the OpenApi Spec this library can parse or produce
+upperOpenApiSpecVersion :: Version
+upperOpenApiSpecVersion = makeVersion [3, 0, 3]
 
 -- | The object provides metadata about the API.
 -- The metadata MAY be used by the clients if needed,
@@ -1450,9 +1458,8 @@ instance FromJSON OpenApiSpecVersion where
             let validatedVersion :: Either String Version
                 validatedVersion = do
                   parsedVersion <- readVersion str 
-                  upperBound <- readVersion "3.0.3" -- Latest known version that works with the spec
-                  lowerBound <- readVersion "3.0.0"
-                  unless ((parsedVersion >= lowerBound) && (parsedVersion <= upperBound)) $ Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=3.0.0 && <=3.0.3")
+                  unless ((parsedVersion >= lowerOpenApiSpecVersion) && (parsedVersion <= upperOpenApiSpecVersion)) $
+                     Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=" <> showVersion lowerOpenApiSpecVersion <> " && <=" <> showVersion upperOpenApiSpecVersion)
                   return parsedVersion
              in 
               either fail (return . OpenApiSpecVersion) validatedVersion
