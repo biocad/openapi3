@@ -312,8 +312,7 @@ characterSchemaJSON = [aesonQQ|
         }
       }
     }
-  ],
-  "type": "object"
+  ]
 }
 
 |]
@@ -398,8 +397,7 @@ characterInlinedSchemaJSON = [aesonQQ|
         }
       }
     }
-  ],
-  "type": "object"
+  ]
 }
 |]
 
@@ -455,8 +453,7 @@ characterInlinedPlayerSchemaJSON = [aesonQQ|
         }
       }
     }
-  ],
-  "type": "object"
+  ]
 }
 |]
 
@@ -705,8 +702,7 @@ lightSchemaJSON = [aesonQQ|
         }
       }
     }
-  ],
-  "type": "object"
+  ]
 }
 |]
 
@@ -789,8 +785,7 @@ lightInlinedSchemaJSON = [aesonQQ|
         }
       }
     }
-  ],
-  "type": "object"
+  ]
 }
 |]
 
@@ -929,8 +924,7 @@ predicateSchemaDeclareJSON = [aesonQQ|
           "required": ["tag", "contents"],
           "type": "object"
         }
-      ],
-      "type": "object"
+      ]
     },
     "Noun": {
       "properties": {
@@ -969,8 +963,7 @@ predicateSchemaDeclareJSON = [aesonQQ|
           "required": ["tag", "contents"],
           "type": "object"
         }
-      ],
-      "type": "object"
+      ]
     },
     "Omitted": {
       "properties": {
