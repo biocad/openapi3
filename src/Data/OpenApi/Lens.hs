@@ -101,6 +101,9 @@ instance At   Operation where at n = responses . at n
 
 instance HasType NamedSchema (Maybe OpenApiType) where type_ = schema.type_
 
+-- Type family instances for SecurityDefinitions type
+type instance Index SecurityDefinitions = Text
+type instance IxValue SecurityDefinitions = SecurityScheme
 -- OVERLAPPABLE instances
 
 instance
