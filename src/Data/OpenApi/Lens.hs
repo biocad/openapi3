@@ -104,6 +104,11 @@ instance HasType NamedSchema (Maybe OpenApiType) where type_ = schema.type_
 -- Type family instances for SecurityDefinitions type
 type instance Index SecurityDefinitions = Text
 type instance IxValue SecurityDefinitions = SecurityScheme
+
+-- Type-Class instances for SecurityDefinitions type
+instance Ixed SecurityDefinitions where ix n = (coerced :: Lens' SecurityDefinitions (Definitions SecurityScheme)). ix n
+instance At   SecurityDefinitions where at n = (coerced :: Lens' SecurityDefinitions (Definitions SecurityScheme)). at n
+
 -- OVERLAPPABLE instances
 
 instance
