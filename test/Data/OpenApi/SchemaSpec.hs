@@ -8,7 +8,7 @@ import Prelude ()
 import Prelude.Compat
 
 import Control.Lens ((^.))
-import Data.Aeson (Value)
+import Data.Aeson (Value(..))
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Proxy
 import Data.Set (Set)
@@ -68,6 +68,9 @@ spec = do
     context "Unit" $ checkToSchema (Proxy :: Proxy Unit) unitSchemaJSON
     context "Person" $ checkToSchema (Proxy :: Proxy Person) personSchemaJSON
     context "ISPair" $ checkToSchema (Proxy :: Proxy ISPair) ispairSchemaJSON
+    context "Either String Int" $ checkToSchema (Proxy :: Proxy EitherStringInt) eitherSchemaJSON
+    context "ISHomogeneousPair" $ checkToSchema (Proxy :: Proxy ISHomogeneousPair) ishomogeneouspairSchemaJSON
+    context "PairWithRef" $ checkToSchema (Proxy :: Proxy PairWithRef) pairwithrefSchemaJSON
     context "Point (fieldLabelModifier)" $ checkToSchema (Proxy :: Proxy Point) pointSchemaJSON
     context "Point5 (many field record)" $ do
       checkToSchema (Proxy :: Proxy Point5) point5SchemaJSON

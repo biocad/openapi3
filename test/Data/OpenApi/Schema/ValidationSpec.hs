@@ -42,8 +42,8 @@ import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances           ()
 
-shouldValidate :: (ToJSON a, ToSchema a) => Proxy a -> a -> Bool
-shouldValidate _ x = validateToJSON x == []
+shouldValidate :: (ToJSON a, ToSchema a) => Proxy a -> a -> Property
+shouldValidate _ x = validateToJSON x === []
 
 shouldNotValidate :: forall a. ToSchema a => (a -> Value) -> a -> Bool
 shouldNotValidate f = not . null . validateJSON defs sch . f

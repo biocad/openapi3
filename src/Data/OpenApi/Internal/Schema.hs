@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
@@ -24,7 +25,7 @@ module Data.OpenApi.Internal.Schema where
 import Prelude ()
 import Prelude.Compat
 
-import Control.Lens hiding (allOf)
+import Control.Lens hiding (allOf, anyOf)
 import Data.Data.Lens (template)
 
 import Control.Monad
@@ -356,14 +357,16 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --         "Jack",
 --         25
 --     ],
---     "items": [
---         {
---             "type": "string"
---         },
---         {
---             "type": "number"
---         }
---     ],
+--     "items": {
+--         "anyOf": [
+--             {
+--                 "type": "string"
+--             },
+--             {
+--                 "type": "number"
+--             }
+--         ]
+--     }
 --     "type": "array"
 -- }
 --
@@ -404,7 +407,7 @@ sketchSchema = sketch . toJSON
       & type_   ?~ OpenApiArray
       & items ?~ case ischema of
           Just s -> OpenApiItemsObject (Inline s)
-          _      -> OpenApiItemsArray (map Inline ys)
+          _      -> OpenApiItemsObject (Inline $ mempty & anyOf ?~ (map Inline ys))
       where
         ys = map go (V.toList xs)
         allSame = and ((zipWith (==)) ys (tail ys))
@@ -440,35 +443,37 @@ sketchSchema = sketch . toJSON
 --             3
 --         ]
 --     ],
---     "items": [
---         {
---             "enum": [
---                 1
---             ],
---             "maximum": 1,
---             "minimum": 1,
---             "multipleOf": 1,
---             "type": "number"
---         },
---         {
---             "enum": [
---                 2
---             ],
---             "maximum": 2,
---             "minimum": 2,
---             "multipleOf": 2,
---             "type": "number"
---         },
---         {
---             "enum": [
---                 3
---             ],
---             "maximum": 3,
---             "minimum": 3,
---             "multipleOf": 3,
---             "type": "number"
---         }
---     ],
+--     "items": {
+--         "anyOf": [
+--             {
+--                 "enum": [
+--                     1
+--                 ],
+--                 "maximum": 1,
+--                 "minimum": 1,
+--                 "multipleOf": 1,
+--                 "type": "number"
+--             },
+--             {
+--                 "enum": [
+--                     2
+--                 ],
+--                 "maximum": 2,
+--                 "minimum": 2,
+--                 "multipleOf": 2,
+--                 "type": "number"
+--             },
+--             {
+--                 "enum": [
+--                     3
+--                 ],
+--                 "maximum": 3,
+--                 "minimum": 3,
+--                 "multipleOf": 3,
+--                 "type": "number"
+--             }
+--         ]
+--     },
 --     "maxItems": 3,
 --     "minItems": 3,
 --     "type": "array",
@@ -483,26 +488,28 @@ sketchSchema = sketch . toJSON
 --             25
 --         ]
 --     ],
---     "items": [
---         {
---             "enum": [
---                 "Jack"
---             ],
---             "maxLength": 4,
---             "minLength": 4,
---             "pattern": "Jack",
---             "type": "string"
---         },
---         {
---             "enum": [
---                 25
---             ],
---             "maximum": 25,
---             "minimum": 25,
---             "multipleOf": 25,
---             "type": "number"
---         }
---     ],
+--     "items": {
+--         "anyOf": [
+--             {
+--                 "enum": [
+--                     "Jack"
+--                 ],
+--                 "maxLength": 4,
+--                 "minLength": 4,
+--                 "pattern": "Jack",
+--                 "type": "string"
+--             },
+--             {
+--                 "enum": [
+--                     25
+--                 ],
+--                 "maximum": 25,
+--                 "minimum": 25,
+--                 "multipleOf": 25,
+--                 "type": "number"
+--             }
+--         ]
+--     },
 --     "maxItems": 2,
 --     "minItems": 2,
 --     "type": "array",
@@ -982,10 +989,22 @@ gdeclareSchemaRef opts proxy = do
       return $ Ref (Reference name)
     _ -> Inline <$> gdeclareSchema opts proxy
 
-appendItem :: Referenced Schema -> Maybe OpenApiItems -> Maybe OpenApiItems
-appendItem x Nothing = Just (OpenApiItemsArray [x])
-appendItem x (Just (OpenApiItemsArray xs)) = Just (OpenApiItemsArray (xs ++ [x]))
-appendItem _ _ = error "GToSchema.appendItem: cannot append to OpenApiItemsObject"
+addItem :: (Referenced Schema -> [Referenced Schema] -> [Referenced Schema])
+        -> Referenced Schema
+        -> Maybe OpenApiItems
+        -> Maybe OpenApiItems
+addItem _ x Nothing = Just (OpenApiItemsArray [x])
+addItem add x (Just (OpenApiItemsArray xs)) = case xs of
+  []                 -> Just $ OpenApiItemsObject x
+  [x'] | x == x'     -> Just $ OpenApiItemsObject x
+  _    | x `elem` xs -> Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ xs
+  _                  -> Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ (add x xs)
+addItem add x (Just (OpenApiItemsObject (Inline s))) =
+  let appendMaybe = Just . maybe [x] (\xs -> if x `elem` xs then xs else add x xs)
+  in Just $ OpenApiItemsObject $ Inline $ s & anyOf %~ appendMaybe
+addItem add x j@(Just (OpenApiItemsObject ref))
+  | x == ref  = j
+  | otherwise = Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ (add x [ref])
 
 withFieldSchema :: forall proxy s f. (Selector s, GToSchema f) =>
   SchemaOptions -> proxy s f -> Bool -> Schema -> Declare (Definitions Schema) Schema
@@ -995,7 +1014,8 @@ withFieldSchema opts _ isRequiredField schema = do
     if T.null fname
       then schema
         & type_ ?~ OpenApiArray
-        & items %~ appendItem ref
+        & items %~ (if isRequiredField then id else addItem (:) nullSchema)
+        & items %~ addItem (\x xs -> xs ++ [x]) ref
         & maxItems %~ Just . maybe 1 (+1)   -- increment maxItems
         & minItems %~ Just . maybe 1 (+1)   -- increment minItems
       else schema
@@ -1005,6 +1025,7 @@ withFieldSchema opts _ isRequiredField schema = do
             then required %~ (++ [fname])
             else id
   where
+    nullSchema = Inline $ mempty & type_ ?~ OpenApiNull
     fname = T.pack (fieldLabelModifier opts (selName (Proxy3 :: Proxy3 s f p)))
 
 -- | Optional record fields.

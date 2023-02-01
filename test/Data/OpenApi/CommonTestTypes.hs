@@ -482,9 +482,39 @@ characterInlinedPlayerSchemaJSON = [aesonQQ|
 |]
 
 -- ========================================================================
+-- Either String Int
+-- ========================================================================
+type EitherStringInt = Either String Int
+
+eitherSchemaJSON :: Value
+eitherSchemaJSON = [aesonQQ|
+  {
+    "oneOf": [{
+      "required": ["Left"],
+      "type": "object",
+      "properties": {
+        "Left": {
+          "type": "string"
+        }
+      }
+    }, {
+      "required": ["Right"],
+      "type": "object",
+      "properties": {
+        "Right": {
+          "maximum": 9223372036854775807,
+          "minimum":-9223372036854775808,
+          "type":"integer"
+        }
+      }
+    }]
+  }
+|]
+
+-- ========================================================================
 -- ISPair (non-record product data type)
 -- ========================================================================
-data ISPair = ISPair Integer String
+data ISPair = ISPair (Integer) (Maybe String)
   deriving (Generic)
 
 instance ToSchema ISPair
@@ -493,11 +523,56 @@ ispairSchemaJSON :: Value
 ispairSchemaJSON = [aesonQQ|
 {
   "type": "array",
-  "items":
-    [
+  "items": {
+    "anyOf": [
+      { "type": "null" },
       { "type": "integer" },
       { "type": "string"  }
-    ],
+    ]
+  },
+  "minItems": 2,
+  "maxItems": 2
+}
+|]
+
+-- ========================================================================
+-- ISHomogeneousPair (non-record product data type)
+-- ========================================================================
+data ISHomogeneousPair = ISHomogeneousPair Integer Integer
+  deriving (Generic)
+
+instance ToSchema ISHomogeneousPair
+
+ishomogeneouspairSchemaJSON :: Value
+ishomogeneouspairSchemaJSON = [aesonQQ|
+{
+  "type": "array",
+  "items": { "type": "integer" },
+  "minItems": 2,
+  "maxItems": 2
+}
+|]
+
+-- ========================================================================
+-- PairWithRef (non-record product data type with ref)
+-- ========================================================================
+data PairWithRef = PairWithRef Integer Point
+  deriving (Generic)
+
+instance ToSchema PairWithRef
+
+pairwithrefSchemaJSON :: Value
+pairwithrefSchemaJSON = [aesonQQ|
+{
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "type": "integer"  },
+      {
+        "$ref": "#/components/schemas/Point"
+      }
+    ]
+  },
   "minItems": 2,
   "maxItems": 2
 }
