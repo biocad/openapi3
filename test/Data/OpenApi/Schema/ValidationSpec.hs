@@ -92,6 +92,7 @@ spec = do
     prop "(Int, String, Double)" $ shouldValidate (Proxy :: Proxy (Int, String, Double))
     prop "(Int, String, Double, [Int])" $ shouldValidate (Proxy :: Proxy (Int, String, Double, [Int]))
     prop "(Int, String, Double, [Int], Int)" $ shouldValidate (Proxy :: Proxy (Int, String, Double, [Int], Int))
+    prop "(String, Paint)" $ shouldValidate (Proxy :: Proxy (String, Paint))
     prop "Person" $ shouldValidate (Proxy :: Proxy Person)
     prop "Color" $ shouldValidate (Proxy :: Proxy Color)
     prop "Paint" $ shouldValidate (Proxy :: Proxy Paint)
@@ -109,6 +110,8 @@ spec = do
     prop "invalidPaintToJSON"         $ shouldNotValidate invalidPaintToJSON
     prop "invalidLightToJSON"         $ shouldNotValidate invalidLightToJSON
     prop "invalidButtonImagesToJSON"  $ shouldNotValidate invalidButtonImagesToJSON
+    prop "invalidStringPersonToJSON"  $ shouldNotValidate $ \(s :: String, p) ->
+      toJSON (s, toInvalidPersonJSON p)
 
 main :: IO ()
 main = hspec spec
@@ -128,12 +131,23 @@ instance ToSchema Person
 instance Arbitrary Person where
   arbitrary = Person <$> arbitrary <*> arbitrary <*> arbitrary
 
+data InvalidPersonJSON = InvalidPersonJSON
+  { invalidName  :: String
+  , invalidPhone :: Integer
+  , invalidEmail :: Maybe String
+  } deriving (Show, Generic)
+
+instance ToJSON InvalidPersonJSON
+
+toInvalidPersonJSON :: Person -> InvalidPersonJSON
+toInvalidPersonJSON Person{..} = InvalidPersonJSON
+  { invalidName = name
+  , invalidPhone = phone
+  , invalidEmail = email
+  }
+
 invalidPersonToJSON :: Person -> Value
-invalidPersonToJSON Person{..} = object
-  [ stringToKey "personName"  .= toJSON name
-  , stringToKey "personPhone" .= toJSON phone
-  , stringToKey "personEmail" .= toJSON email
-  ]
+invalidPersonToJSON = toJSON . toInvalidPersonJSON
 
 -- ========================================================================
 -- Color (enum)
