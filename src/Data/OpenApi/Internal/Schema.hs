@@ -20,6 +20,7 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 -- For TypeErrors
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
+{-# LANGUAGE LambdaCase #-}
 module Data.OpenApi.Internal.Schema where
 
 import Prelude ()
@@ -1009,7 +1010,15 @@ addItem add x j@(Just (OpenApiItemsObject ref))
 withFieldSchema :: forall proxy s f. (Selector s, GToSchema f) =>
   SchemaOptions -> proxy s f -> Bool -> Schema -> Declare (Definitions Schema) Schema
 withFieldSchema opts _ isRequiredField schema = do
-  ref <- gdeclareSchemaRef opts (Proxy :: Proxy f)
+  let setNullable = if isRequiredField
+                    then id
+                    else \case
+                      ref@(Ref _) -> Inline $ mempty & anyOf ?~ [ ref
+                                                                , Inline $ mempty & nullable ?~ True
+                                                                                  & type_ ?~ OpenApiObject
+                                                                ]
+                      Inline s -> Inline $ s & nullable ?~ True
+  ref <- setNullable <$> gdeclareSchemaRef opts (Proxy :: Proxy f)
   return $
     if T.null fname
       then schema
