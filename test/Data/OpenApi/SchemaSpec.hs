@@ -71,6 +71,7 @@ spec = do
     context "Either String Int" $ checkToSchema (Proxy :: Proxy EitherStringInt) eitherSchemaJSON
     context "ISHomogeneousPair" $ checkToSchema (Proxy :: Proxy ISHomogeneousPair) ishomogeneouspairSchemaJSON
     context "PairWithRef" $ checkToSchema (Proxy :: Proxy PairWithRef) pairwithrefSchemaJSON
+    context "PairWithNullRef" $ checkToSchema (Proxy :: Proxy PairWithNullRef) pairwithnullrefSchemaJSON
     context "Point (fieldLabelModifier)" $ checkToSchema (Proxy :: Proxy Point) pointSchemaJSON
     context "Point5 (many field record)" $ do
       checkToSchema (Proxy :: Proxy Point5) point5SchemaJSON

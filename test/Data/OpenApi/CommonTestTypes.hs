@@ -525,7 +525,6 @@ ispairSchemaJSON = [aesonQQ|
   "type": "array",
   "items": {
     "anyOf": [
-      { "type": "null" },
       { "type": "integer" },
       { "type": "string", "nullable": true }
     ]
@@ -570,6 +569,34 @@ pairwithrefSchemaJSON = [aesonQQ|
       { "type": "integer"  },
       {
         "$ref": "#/components/schemas/Point"
+      }
+    ]
+  },
+  "minItems": 2,
+  "maxItems": 2
+}
+|]
+
+-- ========================================================================
+-- PairWithNullRef (non-record product data type with nullable ref)
+-- ========================================================================
+data PairWithNullRef = PairWithNullRef Integer (Maybe Point)
+  deriving (Generic)
+
+instance ToSchema PairWithNullRef
+
+pairwithnullrefSchemaJSON :: Value
+pairwithnullrefSchemaJSON = [aesonQQ|
+{
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "type": "integer"  },
+      {
+        "anyOf": [
+          { "$ref": "#/components/schemas/Point"} ,
+          { "type": "object", "nullable": true }
+        ]
       }
     ]
   },

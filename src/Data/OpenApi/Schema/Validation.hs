@@ -75,7 +75,7 @@ import Data.OpenApi.Internal.Schema.Validation
 -- >>> validateToJSON ([Just "hello", Nothing] :: [Maybe String])
 -- ["expected JSON value of type OpenApiString"]
 -- >>> validateToJSON (123, Nothing :: Maybe String)
--- ["expected JSON value of type OpenApiString"]
+-- ["Value not valid under any of 'anyOf' schemas: Null"]
 --
 -- However, when @'Maybe' a@ is a type of a record field,
 -- validation takes @'required'@ property of the @'Schema'@
