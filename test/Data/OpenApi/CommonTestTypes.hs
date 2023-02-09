@@ -7,8 +7,9 @@ module Data.OpenApi.CommonTestTypes where
 import           Prelude               ()
 import           Prelude.Compat
 
-import           Data.Aeson            (ToJSON (..), ToJSONKey (..), Value)
+import           Data.Aeson            (ToJSON (..), ToJSONKey (..), Value, genericToJSON)
 import           Data.Aeson.QQ.Simple
+import qualified Data.Aeson            as Aeson
 import           Data.Aeson.Types      (toJSONKeyText)
 import           Data.Char
 import           Data.Map              (Map)
@@ -17,6 +18,7 @@ import           Data.Set              (Set)
 import qualified Data.Text             as Text
 import           Data.Word
 import           GHC.Generics
+import           Test.QuickCheck       (Arbitrary (..))
 
 import           Data.OpenApi
 
@@ -581,9 +583,13 @@ pairwithrefSchemaJSON = [aesonQQ|
 -- PairWithNullRef (non-record product data type with nullable ref)
 -- ========================================================================
 data PairWithNullRef = PairWithNullRef Integer (Maybe Point)
-  deriving (Generic)
+  deriving (Show, Generic)
 
+instance ToJSON PairWithNullRef
 instance ToSchema PairWithNullRef
+
+instance Arbitrary PairWithNullRef where
+  arbitrary = PairWithNullRef <$> arbitrary <*> arbitrary
 
 pairwithnullrefSchemaJSON :: Value
 pairwithnullrefSchemaJSON = [aesonQQ|
@@ -612,7 +618,14 @@ pairwithnullrefSchemaJSON = [aesonQQ|
 data Point = Point
   { pointX :: Double
   , pointY :: Double
-  } deriving (Generic)
+  } deriving (Show, Generic)
+
+instance ToJSON Point where
+  toJSON = genericToJSON Aeson.defaultOptions
+    { Aeson.fieldLabelModifier = map toLower . drop (length "point") }
+
+instance Arbitrary Point where
+  arbitrary = Point <$> arbitrary <*> arbitrary
 
 instance ToSchema Point where
   declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
