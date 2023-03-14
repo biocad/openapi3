@@ -36,6 +36,7 @@ import           GHC.Generics
 import           Data.OpenApi
 import           Data.OpenApi.Declare
 import           Data.OpenApi.Aeson.Compat (stringToKey)
+import           Data.OpenApi.CommonTestTypes (PairWithNullRef)
 
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
@@ -93,6 +94,7 @@ spec = do
     prop "(Int, String, Double, [Int])" $ shouldValidate (Proxy :: Proxy (Int, String, Double, [Int]))
     prop "(Int, String, Double, [Int], Int)" $ shouldValidate (Proxy :: Proxy (Int, String, Double, [Int], Int))
     prop "(String, Paint)" $ shouldValidate (Proxy :: Proxy (String, Paint))
+    prop "PairWithNullRef" $ shouldValidate (Proxy :: Proxy PairWithNullRef)
     prop "Person" $ shouldValidate (Proxy :: Proxy Person)
     prop "Color" $ shouldValidate (Proxy :: Proxy Color)
     prop "Paint" $ shouldValidate (Proxy :: Proxy Paint)

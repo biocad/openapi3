@@ -7,8 +7,9 @@ module Data.OpenApi.CommonTestTypes where
 import           Prelude               ()
 import           Prelude.Compat
 
-import           Data.Aeson            (ToJSON (..), ToJSONKey (..), Value)
+import           Data.Aeson            (ToJSON (..), ToJSONKey (..), Value, genericToJSON)
 import           Data.Aeson.QQ.Simple
+import qualified Data.Aeson            as Aeson
 import           Data.Aeson.Types      (toJSONKeyText)
 import           Data.Char
 import           Data.Map              (Map)
@@ -17,6 +18,7 @@ import           Data.Set              (Set)
 import qualified Data.Text             as Text
 import           Data.Word
 import           GHC.Generics
+import           Test.QuickCheck       (Arbitrary (..))
 
 import           Data.OpenApi
 
@@ -205,7 +207,7 @@ personSchemaJSON = [aesonQQ|
     {
       "name":   { "type": "string"  },
       "phone":  { "type": "integer" },
-      "email":  { "type": "string"  }
+      "email":  { "type": "string", "nullable": true }
     },
   "required": ["name", "phone"]
 }
@@ -525,9 +527,8 @@ ispairSchemaJSON = [aesonQQ|
   "type": "array",
   "items": {
     "anyOf": [
-      { "type": "null" },
       { "type": "integer" },
-      { "type": "string"  }
+      { "type": "string", "nullable": true }
     ]
   },
   "minItems": 2,
@@ -579,13 +580,52 @@ pairwithrefSchemaJSON = [aesonQQ|
 |]
 
 -- ========================================================================
+-- PairWithNullRef (non-record product data type with nullable ref)
+-- ========================================================================
+data PairWithNullRef = PairWithNullRef Integer (Maybe Point)
+  deriving (Show, Generic)
+
+instance ToJSON PairWithNullRef
+instance ToSchema PairWithNullRef
+
+instance Arbitrary PairWithNullRef where
+  arbitrary = PairWithNullRef <$> arbitrary <*> arbitrary
+
+pairwithnullrefSchemaJSON :: Value
+pairwithnullrefSchemaJSON = [aesonQQ|
+{
+  "type": "array",
+  "items": {
+    "anyOf": [
+      { "type": "integer"  },
+      {
+        "anyOf": [
+          { "$ref": "#/components/schemas/Point"} ,
+          { "type": "object", "nullable": true }
+        ]
+      }
+    ]
+  },
+  "minItems": 2,
+  "maxItems": 2
+}
+|]
+
+-- ========================================================================
 -- Point (record data type with custom fieldLabelModifier)
 -- ========================================================================
 
 data Point = Point
   { pointX :: Double
   , pointY :: Double
-  } deriving (Generic)
+  } deriving (Show, Generic)
+
+instance ToJSON Point where
+  toJSON = genericToJSON Aeson.defaultOptions
+    { Aeson.fieldLabelModifier = map toLower . drop (length "point") }
+
+instance Arbitrary Point where
+  arbitrary = Point <$> arbitrary <*> arbitrary
 
 instance ToSchema Point where
   declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
@@ -964,8 +1004,37 @@ singleMaybeFieldSchemaJSON = [aesonQQ|
   "type": "object",
   "properties":
     {
-      "singleMaybeField": { "type": "string" }
+      "singleMaybeField": { "type": "string", "nullable": true }
     }
+}
+|]
+
+-- ========================================================================
+-- Painter (record with an optional reference)
+-- ========================================================================
+
+data Painter = Painter { painterName :: String
+                       , favoriteColor :: Maybe Color
+                       }
+  deriving (Generic)
+
+instance ToSchema Painter
+
+painterSchemaJSON :: Value
+painterSchemaJSON = [aesonQQ|
+{
+  "type": "object",
+  "properties":
+    {
+      "painterName": { "type": "string" },
+      "favoriteColor": {
+        "anyOf": [
+          { "$ref": "#/components/schemas/Color" },
+          { "type": "object", "nullable": true }
+        ]
+      }
+    },
+  "required": ["painterName"]
 }
 |]
 

@@ -71,6 +71,7 @@ spec = do
     context "Either String Int" $ checkToSchema (Proxy :: Proxy EitherStringInt) eitherSchemaJSON
     context "ISHomogeneousPair" $ checkToSchema (Proxy :: Proxy ISHomogeneousPair) ishomogeneouspairSchemaJSON
     context "PairWithRef" $ checkToSchema (Proxy :: Proxy PairWithRef) pairwithrefSchemaJSON
+    context "PairWithNullRef" $ checkToSchema (Proxy :: Proxy PairWithNullRef) pairwithnullrefSchemaJSON
     context "Point (fieldLabelModifier)" $ checkToSchema (Proxy :: Proxy Point) pointSchemaJSON
     context "Point5 (many field record)" $ do
       checkToSchema (Proxy :: Proxy Point5) point5SchemaJSON
@@ -84,6 +85,7 @@ spec = do
       context "UserId (non-record newtype)" $ checkToSchema (Proxy :: Proxy UserId) userIdSchemaJSON
       context "Player (unary record)" $ checkToSchema (Proxy :: Proxy Player) playerSchemaJSON
       context "SingleMaybeField (unary record with Maybe)" $ checkToSchema (Proxy :: Proxy SingleMaybeField) singleMaybeFieldSchemaJSON
+      context "Painter (record with an optional reference)" $ checkToSchema (Proxy :: Proxy Painter) painterSchemaJSON
       context "Natural Language (single field data with recursive fields)" $ checkToSchemaDeclare (Proxy :: Proxy Predicate) predicateSchemaDeclareJSON
     context "Players (inlining schema)" $ checkToSchema (Proxy :: Proxy Players) playersSchemaJSON
     context "MyRoseTree (datatypeNameModifier)" $ checkToSchema (Proxy :: Proxy MyRoseTree) myRoseTreeSchemaJSON

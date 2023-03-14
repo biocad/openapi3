@@ -35,7 +35,7 @@ import           Data.Aeson                          hiding (Result)
 #if MIN_VERSION_aeson(2,0,0)
 import qualified Data.Aeson.KeyMap as KeyMap
 #endif
-import           Data.Foldable                       (asum, for_, sequenceA_,
+import           Data.Foldable                       (for_, sequenceA_,
                                                       traverse_)
 #if !MIN_VERSION_aeson(2,0,0)
 import           Data.HashMap.Strict                 (HashMap)
@@ -501,6 +501,9 @@ validateSchemaType val = withSchema $ \sch ->
 
     _ ->
       case (sch ^. type_, val) of
+        -- Type must be set for nullable to have effect
+        -- See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#fixed-fields-20
+        (Just _, Null) | sch ^. nullable == Just True -> valid
         (Just OpenApiNull,    Null)       -> valid
         (Just OpenApiBoolean, Bool _)     -> valid
         (Just OpenApiInteger, Number n)   -> validateInteger n

@@ -20,6 +20,7 @@
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
 -- For TypeErrors
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
+{-# LANGUAGE LambdaCase #-}
 module Data.OpenApi.Internal.Schema where
 
 import Prelude ()
@@ -366,7 +367,7 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
 --                 "type": "number"
 --             }
 --         ]
---     }
+--     },
 --     "type": "array"
 -- }
 --
@@ -577,7 +578,7 @@ sketchStrictSchema = go . toJSON
       & type_       ?~ OpenApiArray
       & maxItems    ?~ fromIntegral sz
       & minItems    ?~ fromIntegral sz
-      & items       ?~ OpenApiItemsArray (map (Inline . go) (V.toList xs))
+      & items       ?~ OpenApiItemsObject (Inline $ mempty & anyOf ?~ (map (Inline . go) (V.toList xs)))
       & uniqueItems ?~ allUnique
       & enum_       ?~ [js]
       where
@@ -989,33 +990,37 @@ gdeclareSchemaRef opts proxy = do
       return $ Ref (Reference name)
     _ -> Inline <$> gdeclareSchema opts proxy
 
-addItem :: (Referenced Schema -> [Referenced Schema] -> [Referenced Schema])
-        -> Referenced Schema
-        -> Maybe OpenApiItems
-        -> Maybe OpenApiItems
-addItem _ x Nothing = Just (OpenApiItemsArray [x])
-addItem add x (Just (OpenApiItemsArray xs)) = case xs of
+addItem :: Referenced Schema -> Maybe OpenApiItems -> Maybe OpenApiItems
+addItem x Nothing = Just (OpenApiItemsArray [x])
+addItem x (Just (OpenApiItemsArray xs)) = case xs of
   []                 -> Just $ OpenApiItemsObject x
   [x'] | x == x'     -> Just $ OpenApiItemsObject x
   _    | x `elem` xs -> Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ xs
-  _                  -> Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ (add x xs)
-addItem add x (Just (OpenApiItemsObject (Inline s))) =
-  let appendMaybe = Just . maybe [x] (\xs -> if x `elem` xs then xs else add x xs)
+  _                  -> Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ (xs ++ [x])
+addItem x (Just (OpenApiItemsObject (Inline s))) =
+  let appendMaybe = Just . maybe [x] (\xs -> if x `elem` xs then xs else xs ++ [x])
   in Just $ OpenApiItemsObject $ Inline $ s & anyOf %~ appendMaybe
-addItem add x j@(Just (OpenApiItemsObject ref))
+addItem x j@(Just (OpenApiItemsObject ref))
   | x == ref  = j
-  | otherwise = Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ (add x [ref])
+  | otherwise = Just $ OpenApiItemsObject $ Inline $ mempty & anyOf ?~ [ref, x]
 
 withFieldSchema :: forall proxy s f. (Selector s, GToSchema f) =>
   SchemaOptions -> proxy s f -> Bool -> Schema -> Declare (Definitions Schema) Schema
 withFieldSchema opts _ isRequiredField schema = do
-  ref <- gdeclareSchemaRef opts (Proxy :: Proxy f)
+  let setNullable = if isRequiredField
+                    then id
+                    else \case
+                      ref@(Ref _) -> Inline $ mempty & anyOf ?~ [ ref
+                                                                , Inline $ mempty & nullable ?~ True
+                                                                                  & type_ ?~ OpenApiObject
+                                                                ]
+                      Inline s -> Inline $ s & nullable ?~ True
+  ref <- setNullable <$> gdeclareSchemaRef opts (Proxy :: Proxy f)
   return $
     if T.null fname
       then schema
         & type_ ?~ OpenApiArray
-        & items %~ (if isRequiredField then id else addItem (:) nullSchema)
-        & items %~ addItem (\x xs -> xs ++ [x]) ref
+        & items %~ addItem ref
         & maxItems %~ Just . maybe 1 (+1)   -- increment maxItems
         & minItems %~ Just . maybe 1 (+1)   -- increment minItems
       else schema
@@ -1025,7 +1030,6 @@ withFieldSchema opts _ isRequiredField schema = do
             then required %~ (++ [fname])
             else id
   where
-    nullSchema = Inline $ mempty & type_ ?~ OpenApiNull
     fname = T.pack (fieldLabelModifier opts (selName (Proxy3 :: Proxy3 s f p)))
 
 -- | Optional record fields.
