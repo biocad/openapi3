@@ -1,4 +1,5 @@
 packages: .
 tests: true
 
-allow-newer: http-media:base
+allow-newer: insert-ordered-containers:base, insert-ordered-containers:semigroupoids, insert-ordered-containers:transformers
+allow-newer: generics-sop:base, generics-sop:ghc-prim, generics-sop:template-haskell
