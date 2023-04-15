@@ -138,6 +138,7 @@ jobs:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
           HCVER: ${{ matrix.compilerVersion }}
+          CABALVER: ${{ matrix.cabalVersion }}
       - name: env
         run: |
           env
