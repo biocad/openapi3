@@ -23,7 +23,7 @@ on:
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     timeout-minutes:
       60
     container:
@@ -170,7 +170,7 @@ jobs:
           chmod a+x $HOME/.cabal/bin/cabal-plan
           cabal-plan --version
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: source
       - name: initial cabal.project for sdist
@@ -197,7 +197,12 @@ jobs:
           echo "package openapi3" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
-          allow-newer: http-media:base
+          allow-newer: insert-ordered-containers:base
+          allow-newer: insert-ordered-containers:semigroupoids
+          allow-newer: insert-ordered-containers:transformers
+          allow-newer: generics-sop:base
+          allow-newer: generics-sop:ghc-prim
+          allow-newer: generics-sop:template-haskell
           EOF
           $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(openapi3)$/; }' >> cabal.project.local
           cat cabal.project
@@ -206,8 +211,8 @@ jobs:
         run: |
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dry-run all
           cabal-plan
-      - name: cache
-        uses: actions/cache@v2
+      - name: restore cache
+        uses: actions/cache/restore@v3
         with:
           key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
           path: ~/.cabal/store
@@ -247,3 +252,9 @@ jobs:
         run: |
           if [ $((HCNUMVER < 90200)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks --constraint='aeson <2.0' --dependencies-only -j2 all ; fi
           if [ $((HCNUMVER < 90200)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks --constraint='aeson <2.0' all ; fi
+      - name: save cache
+        uses: actions/cache/save@v3
+        if: always()
+        with:
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
+          path: ~/.cabal/store
