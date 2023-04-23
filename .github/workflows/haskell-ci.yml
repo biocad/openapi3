@@ -38,9 +38,9 @@ jobs:
             setup-method: ghcup
             allow-failure: true
             cabalVersion: 3.10.1.0
-          - compiler: ghc-9.4.4
+          - compiler: ghc-9.4.5
             compilerKind: ghc
-            compilerVersion: 9.4.4
+            compilerVersion: 9.4.5
             setup-method: ghcup
             allow-failure: true
             cabalVersion: 3.6.2.0
