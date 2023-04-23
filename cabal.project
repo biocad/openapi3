@@ -2,4 +2,3 @@ packages: .
 tests: true
 
 allow-newer: insert-ordered-containers:base, insert-ordered-containers:semigroupoids, insert-ordered-containers:transformers
-allow-newer: generics-sop:base, generics-sop:ghc-prim, generics-sop:template-haskell
