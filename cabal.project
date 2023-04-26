@@ -1,4 +1,2 @@
 packages: .
 tests: true
-
-allow-newer: insert-ordered-containers:base, insert-ordered-containers:semigroupoids, insert-ordered-containers:transformers
