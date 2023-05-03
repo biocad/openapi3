@@ -125,14 +125,14 @@ test-suite spec
 
   -- test-suite only dependencies
   build-depends:
-      hspec                >=2.5.5   && <2.11
+      hspec                >=2.5.5   && <2.12
     , HUnit                >=1.6.0.0 && <1.7
     , quickcheck-instances >=0.3.19  && <0.14
     , utf8-string          >=1.0.1.1 && <1.1
 
   -- https://github.com/haskell/cabal/issues/3708
   build-tool-depends:
-    hspec-discover:hspec-discover >=2.5.5 && <2.11
+    hspec-discover:hspec-discover >=2.5.5 && <2.12
 
   other-modules:
     SpecCommon
