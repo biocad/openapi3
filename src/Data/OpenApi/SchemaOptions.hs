@@ -39,14 +39,7 @@ data SchemaOptions = SchemaOptions
 -- }
 -- @
 defaultSchemaOptions :: SchemaOptions
-defaultSchemaOptions = SchemaOptions
-  { fieldLabelModifier = id
-  , constructorTagModifier = id
-  , datatypeNameModifier = id
-  , allNullaryToStringTag = True
-  , unwrapUnaryRecords = False
-  , sumEncoding = Aeson.defaultTaggedObject
-  }
+defaultSchemaOptions = fromAesonOptions Aeson.defaultOptions
 
 -- | Convert 'Aeson.Options' to 'SchemaOptions'.
 --
@@ -56,20 +49,23 @@ defaultSchemaOptions = SchemaOptions
 -- * 'constructorTagModifier'
 -- * 'allNullaryToStringTag'
 -- * 'unwrapUnaryRecords'
+-- * 'sumEncoding'
 --
 -- Note that these fields have no effect on `SchemaOptions`:
 --
 -- * 'Aeson.omitNothingFields'
 -- * 'Aeson.tagSingleConstructors'
+-- * 'Aeson.rejectUnknownFields'
 --
 -- The rest is defined as in 'defaultSchemaOptions'.
 --
 -- @since 2.2.1
 --
 fromAesonOptions :: Aeson.Options -> SchemaOptions
-fromAesonOptions opts = defaultSchemaOptions
+fromAesonOptions opts = SchemaOptions
   { fieldLabelModifier     = Aeson.fieldLabelModifier     opts
   , constructorTagModifier = Aeson.constructorTagModifier opts
+  , datatypeNameModifier   = id
   , allNullaryToStringTag  = Aeson.allNullaryToStringTag  opts
   , unwrapUnaryRecords     = Aeson.unwrapUnaryRecords     opts
   , sumEncoding            = Aeson.sumEncoding            opts
