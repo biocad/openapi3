@@ -3,6 +3,14 @@ branches: master
 distribution: focal
 allow-failures: >=9.2
 
+-- https://github.com/haskell-CI/haskell-ci/issues/658#issuecomment-1513692337
+haddock-components: libs
+
+-- Building docs on GHC 9.2 and 9.4 leads to myriad of different errors.
+-- See https://github.com/haskell/cabal/issues/7462, https://github.com/haskell/cabal/issues/8707
+-- and https://github.com/haskell/cabal/issues/8707
+haddock: < 9.0 || >= 9.4
+
 constraint-set aeson-1
   constraints: aeson <2.0
   ghc: <9.2
