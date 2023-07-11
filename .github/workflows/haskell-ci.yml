@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.14.3
+# version: 0.16.3
 #
-# REGENDATA ("0.14.3",["github","cabal.project"])
+# REGENDATA ("0.16.3",["github","cabal.project"])
 #
 name: Haskell-CI
 on:
@@ -37,49 +37,41 @@ jobs:
             compilerVersion: 9.6.1
             setup-method: ghcup
             allow-failure: true
-            cabalVersion: 3.10.1.0
           - compiler: ghc-9.4.5
             compilerKind: ghc
             compilerVersion: 9.4.5
             setup-method: ghcup
             allow-failure: true
-            cabalVersion: 3.6.2.0
           - compiler: ghc-9.2.7
             compilerKind: ghc
             compilerVersion: 9.2.7
             setup-method: ghcup
             allow-failure: true
-            cabalVersion: 3.6.2.0
           - compiler: ghc-9.0.2
             compilerKind: ghc
             compilerVersion: 9.0.2
             setup-method: ghcup
             allow-failure: false
-            cabalVersion: 3.6.2.0
           - compiler: ghc-8.10.7
             compilerKind: ghc
             compilerVersion: 8.10.7
             setup-method: ghcup
             allow-failure: false
-            cabalVersion: 3.6.2.0
           - compiler: ghc-8.8.4
             compilerKind: ghc
             compilerVersion: 8.8.4
             setup-method: hvr-ppa
             allow-failure: false
-            cabalVersion: 3.6.2.0
           - compiler: ghc-8.6.5
             compilerKind: ghc
             compilerVersion: 8.6.5
             setup-method: hvr-ppa
             allow-failure: false
-            cabalVersion: 3.6.2.0
           - compiler: ghc-8.4.4
             compilerKind: ghc
             compilerVersion: 8.4.4
             setup-method: hvr-ppa
             allow-failure: false
-            cabalVersion: 3.6.2.0
       fail-fast: false
     steps:
       - name: apt
@@ -88,24 +80,23 @@ jobs:
           apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
           if [ "${{ matrix.setup-method }}" = ghcup ]; then
             mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.17.5/x86_64-linux-ghcup-0.1.17.5 > "$HOME/.ghcup/bin/ghcup"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.19.2/x86_64-linux-ghcup-0.1.19.2 > "$HOME/.ghcup/bin/ghcup"
             chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER"
-            "$HOME/.ghcup/bin/ghcup" install cabal "$CABALVER"
+            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.10.1.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
           else
             apt-add-repository -y 'ppa:hvr/ghc'
             apt-get update
             apt-get install -y "$HCNAME"
             mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.17.5/x86_64-linux-ghcup-0.1.17.5 > "$HOME/.ghcup/bin/ghcup"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.19.2/x86_64-linux-ghcup-0.1.19.2 > "$HOME/.ghcup/bin/ghcup"
             chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install cabal "$CABALVER"
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.10.1.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
           fi
         env:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
           HCVER: ${{ matrix.compilerVersion }}
-          CABALVER: ${{ matrix.cabalVersion }}
       - name: Set PATH and environment variables
         run: |
           echo "$HOME/.cabal/bin" >> $GITHUB_PATH
@@ -118,13 +109,13 @@ jobs:
             echo "HC=$HC" >> "$GITHUB_ENV"
             echo "HCPKG=$HOME/.ghcup/bin/$HCKIND-pkg-$HCVER" >> "$GITHUB_ENV"
             echo "HADDOCK=$HOME/.ghcup/bin/haddock-$HCVER" >> "$GITHUB_ENV"
-            echo "CABAL=$HOME/.ghcup/bin/cabal-$CABALVER -vnormal+nowrap" >> "$GITHUB_ENV"
+            echo "CABAL=$HOME/.ghcup/bin/cabal-3.10.1.0 -vnormal+nowrap" >> "$GITHUB_ENV"
           else
             HC=$HCDIR/bin/$HCKIND
             echo "HC=$HC" >> "$GITHUB_ENV"
             echo "HCPKG=$HCDIR/bin/$HCKIND-pkg" >> "$GITHUB_ENV"
             echo "HADDOCK=$HCDIR/bin/haddock" >> "$GITHUB_ENV"
-            echo "CABAL=$HOME/.ghcup/bin/cabal-$CABALVER -vnormal+nowrap" >> "$GITHUB_ENV"
+            echo "CABAL=$HOME/.ghcup/bin/cabal-3.10.1.0 -vnormal+nowrap" >> "$GITHUB_ENV"
           fi
 
           HCNUMVER=$(${HC} --numeric-version|perl -ne '/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/; print(10000 * $1 + 100 * $2 + ($3 == 0 ? $5 != 1 : $3))')
@@ -138,7 +129,6 @@ jobs:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
           HCVER: ${{ matrix.compilerVersion }}
-          CABALVER: ${{ matrix.cabalVersion }}
       - name: env
         run: |
           env
@@ -177,8 +167,8 @@ jobs:
       - name: install cabal-plan
         run: |
           mkdir -p $HOME/.cabal/bin
-          curl -sL https://github.com/haskell-hvr/cabal-plan/releases/download/v0.6.2.0/cabal-plan-0.6.2.0-x86_64-linux.xz > cabal-plan.xz
-          echo 'de73600b1836d3f55e32d80385acc055fd97f60eaa0ab68a755302685f5d81bc  cabal-plan.xz' | sha256sum -c -
+          curl -sL https://github.com/haskell-hvr/cabal-plan/releases/download/v0.7.3.0/cabal-plan-0.7.3.0-x86_64-linux.xz > cabal-plan.xz
+          echo 'f62ccb2971567a5f638f2005ad3173dba14693a45154c1508645c52289714cb2  cabal-plan.xz' | sha256sum -c -
           xz -d < cabal-plan.xz > $HOME/.cabal/bin/cabal-plan
           rm -f cabal-plan.xz
           chmod a+x $HOME/.cabal/bin/cabal-plan
@@ -210,6 +200,8 @@ jobs:
           echo "packages: ${PKGDIR_openapi3}" >> cabal.project
           echo "package openapi3" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          cat >> cabal.project <<EOF
+          EOF
           $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(openapi3)$/; }' >> cabal.project.local
           cat cabal.project
           cat cabal.project.local
@@ -242,7 +234,7 @@ jobs:
           ${CABAL} -vnormal check
       - name: haddock
         run: |
-          $CABAL v2-haddock $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
+          if [ $((HCNUMVER < 90000 || HCNUMVER >= 90400)) -ne 0 ] ; then $CABAL v2-haddock --disable-documentation $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all ; fi
       - name: unconstrained build
         run: |
           rm -f cabal.project.local
