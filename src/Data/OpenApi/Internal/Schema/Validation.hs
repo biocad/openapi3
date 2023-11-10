@@ -28,7 +28,7 @@ import           Prelude                             ()
 import           Prelude.Compat
 
 import           Control.Applicative
-import           Control.Lens                        hiding (allOf)
+import           Control.Lens                        hiding (allOf, anyOf)
 import           Control.Monad                       (forM, forM_, when)
 
 import           Data.Aeson                          hiding (Result)
@@ -480,13 +480,20 @@ inferParamSchemaTypes sch = concat
         , has (pattern._Just) ] ]
   ]
 
+-- compute number of passing variants and variants
+countPassingVariants :: Value -> [Referenced Schema] -> Validation s Int
+countPassingVariants val variants = do
+      res <- forM variants $ \var ->
+        True <$ validateWithSchemaRef var val <|> return False
+      pure $ length $ filter id res
+
+
 validateSchemaType :: Value -> Validation Schema ()
 validateSchemaType val = withSchema $ \sch ->
   case sch of
     (view oneOf -> Just variants) -> do
-      res <- forM variants $ \var ->
-        (True <$ validateWithSchemaRef var val) <|> (return False)
-      case length $ filter id res of
+      npassing <- countPassingVariants val variants
+      case npassing of
         0 -> invalid $ "Value not valid under any of 'oneOf' schemas: " ++ show val
         1 -> valid
         _ -> invalid $ "Value matches more than one of 'oneOf' schemas: " ++ show val
@@ -495,6 +502,11 @@ validateSchemaType val = withSchema $ \sch ->
       -- variant does not match.
       forM_ variants $ \var ->
         validateWithSchemaRef var val
+    (view anyOf -> Just variants) -> do
+      npassing <- countPassingVariants val variants
+      case npassing of
+        0 -> invalid $ "Value not valid under any of 'anyOf' schemas: " ++ show val
+        _ -> valid
 
     _ ->
       case (sch ^. type_, val) of
