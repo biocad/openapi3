@@ -27,6 +27,7 @@ import Prelude.Compat
 import Control.Lens hiding (allOf)
 import Data.Data.Lens (template)
 
+import Control.Applicative ((<|>))
 import Control.Monad
 import Control.Monad.Writer hiding (First, Last)
 import Data.Aeson (Object (..), SumEncoding (..), ToJSON (..), ToJSONKey (..),
@@ -1026,7 +1027,7 @@ instance ( GSumToSchema f
          ) => GToSchema (f :+: g)
    where
   -- Aeson does not unwrap unary record in sum types.
-  gdeclareNamedSchema opts p s = gdeclareNamedSumSchema (opts { unwrapUnaryRecords = False } )p s
+  gdeclareNamedSchema opts = gdeclareNamedSumSchema (opts { unwrapUnaryRecords = False })
 
 gdeclareNamedSumSchema :: GSumToSchema f => SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 gdeclareNamedSumSchema opts proxy _
@@ -1055,8 +1056,15 @@ instance (GSumToSchema f, GSumToSchema g) => GSumToSchema (f :+: g) where
 -- | Convert one component of the sum to schema, to be later combined with @oneOf@.
 gsumConToSchemaWith :: forall c f. (GToSchema (C1 c f), Constructor c) =>
   Maybe (Referenced Schema) -> SchemaOptions -> Proxy (C1 c f) -> (T.Text, Referenced Schema)
-gsumConToSchemaWith ref opts _ = (tag, schema)
+gsumConToSchemaWith ref opts _ = (tag, withTitle)
   where
+    -- Give sub-schemas @title@ attribute with constructor name, if none present.
+    -- This will look prettier in swagger-ui.
+    withTitle = case schema of
+      Inline sub -> Inline $ sub
+        & title %~ (<|> Just (T.pack constructorName))
+      s -> s
+
     schema = case sumEncoding opts of
       TaggedObject tagField contentsField ->
         case ref of
@@ -1064,13 +1072,13 @@ gsumConToSchemaWith ref opts _ = (tag, schema)
           -- to the record, as Aeson does it.
           Just (Inline sub) | sub ^. type_ == Just OpenApiObject && isRecord -> Inline $ sub
             & required <>~ [T.pack tagField]
-            & properties . at (T.pack tagField) ?~ (Inline $ mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])
+            & properties . at (T.pack tagField) ?~ Inline (mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])
 
           -- If it is not a record, we need to put subschema into "contents" field.
           _ | not isRecord -> Inline $ mempty
             & type_ ?~ OpenApiObject
             & required .~ [T.pack tagField]
-            & properties . at (T.pack tagField) ?~ (Inline $ mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])
+            & properties . at (T.pack tagField) ?~ Inline (mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])
               -- If constructor is nullary, there is no content.
             & case ref of
                 Just r -> (properties . at (T.pack contentsField) ?~ r) . (required <>~ [T.pack contentsField])
@@ -1081,7 +1089,7 @@ gsumConToSchemaWith ref opts _ = (tag, schema)
             & allOf ?~ [Inline $ mempty
               & type_ ?~ OpenApiObject
               & required .~ (T.pack tagField : if isRecord then [] else [T.pack contentsField])
-              & properties . at (T.pack tagField) ?~ (Inline $ mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])]
+              & properties . at (T.pack tagField) ?~ Inline (mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])]
             & if isRecord
                  then allOf . _Just <>~ [refOrNullary]
                  else allOf . _Just <>~ [Inline $ mempty & type_ ?~ OpenApiObject & properties . at (T.pack contentsField) ?~ refOrNullary]
@@ -1092,7 +1100,8 @@ gsumConToSchemaWith ref opts _ = (tag, schema)
         & properties . at tag ?~ refOrNullary
       TwoElemArray -> error "unrepresentable in OpenAPI 3"
 
-    tag = T.pack (constructorTagModifier opts (conName (Proxy3 :: Proxy3 c f p)))
+    constructorName = conName (Proxy3 :: Proxy3 c f p)
+    tag = T.pack (constructorTagModifier opts constructorName)
     isRecord = conIsRecord (Proxy3 :: Proxy3 c f p)
     refOrNullary = fromMaybe (Inline nullarySchema) ref
     refOrEnum = fromMaybe (Inline $ mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag]) ref
