@@ -392,6 +392,7 @@ import Data.OpenApi.Internal
 --                 "userId",
 --                 "tag"
 --             ],
+--             "title": "ErrorNoUser",
 --             "type": "object"
 --         },
 --         {
@@ -410,6 +411,7 @@ import Data.OpenApi.Internal
 --                 "requiredPermission",
 --                 "tag"
 --             ],
+--             "title": "ErrorAccessDenied",
 --             "type": "object"
 --         }
 --     ]
