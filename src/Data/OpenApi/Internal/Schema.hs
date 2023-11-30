@@ -35,6 +35,7 @@ import Data.Aeson (Object (..), SumEncoding (..), ToJSON (..), ToJSONKey (..),
 import Data.Char
 import Data.Data (Data)
 import Data.Foldable (traverse_)
+import Data.Traversable (for)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           "unordered-containers" Data.HashSet (HashSet)
@@ -924,8 +925,8 @@ nullarySchema = mempty
   & type_ ?~ OpenApiArray
   & items ?~ OpenApiItemsArray []
 
-gtoNamedSchema :: GToSchema f => SchemaOptions -> Proxy f -> NamedSchema
-gtoNamedSchema opts proxy = undeclare $ gdeclareNamedSchema opts proxy mempty
+gtoNamedSchema :: GToSchema f => SchemaOptions -> Proxy f -> Declare (Definitions Schema) NamedSchema
+gtoNamedSchema opts proxy = gdeclareNamedSchema opts proxy mempty
 
 gdeclareSchema :: GToSchema f => SchemaOptions -> Proxy f -> Declare (Definitions Schema) Schema
 gdeclareSchema opts proxy = _namedSchemaSchema <$> gdeclareNamedSchema opts proxy mempty
@@ -966,7 +967,8 @@ instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s 
 
 gdeclareSchemaRef :: GToSchema a => SchemaOptions -> Proxy a -> Declare (Definitions Schema) (Referenced Schema)
 gdeclareSchemaRef opts proxy = do
-  case gtoNamedSchema opts proxy of
+  namedSchema <- gtoNamedSchema opts proxy
+  case namedSchema of
     NamedSchema (Just name) schema -> do
       -- This check is very important as it allows generically
       -- derive used definitions for recursive schemas.
@@ -1029,20 +1031,49 @@ instance ( GSumToSchema f
   -- Aeson does not unwrap unary record in sum types.
   gdeclareNamedSchema opts = gdeclareNamedSumSchema (opts { unwrapUnaryRecords = False })
 
+-- | Convert inline or ref to ref
+toReferenced :: T.Text -> Referenced Schema -> Declare (Definitions Schema) (Referenced Schema)
+toReferenced _ ref@(Ref _) = pure ref
+toReferenced constructorName r@(Inline schema) = do
+  defs <- look
+  case InsOrdHashMap.lookup constructorName defs of
+    Just schemaAtRef
+      -- Same structure at ref
+      | schemaAtRef == schema -> pure $ Ref $ Reference constructorName
+      -- Same name but structures are different
+      | otherwise -> toReferenced (constructorName <> "_") r -- Modify ref-name with undercore at end
+    Nothing -> do
+      declare $ InsOrdHashMap.insert constructorName schema defs
+      pure $ Ref $ Reference constructorName
+
 gdeclareNamedSumSchema :: GSumToSchema f => SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 gdeclareNamedSumSchema opts proxy _
   | allNullaryToStringTag opts && allNullary = pure $ unnamed (toStringTag sumSchemas)
   | otherwise = do
-    (schemas, _) <- runWriterT declareSumSchema
+    (schemas', _) <- runWriterT declareSumSchema
+    schemas <- for schemas' $ \(name, schema) -> do
+            newSchema <- toReferenced name schema
+            pure (name, newSchema)
     return $ unnamed $ mempty
       & oneOf ?~ (snd <$> schemas)
+      & discriminator .~ getDiscriminator schemas
   where
     declareSumSchema = gsumToSchema opts proxy
     (sumSchemas, All allNullary) = undeclare (runWriterT declareSumSchema)
-
     toStringTag schemas = mempty
       & type_ ?~ OpenApiString
       & enum_ ?~ map (String . fst) sumSchemas
+
+    tagName = case sumEncoding opts of
+                TaggedObject tagField _ -> Just tagField
+                _ -> Nothing
+    getDiscriminator schemas = do
+          tagPropertyName <- tagName
+          pure Discriminator { _discriminatorPropertyName = T.pack tagPropertyName
+                             , _discriminatorMapping = InsOrdHashMap.fromList 
+                                                        [(name, ReferenceToSchema ref) | (name, Ref ref) <- schemas]
+                             }
+
 
 type AllNullary = All
 
