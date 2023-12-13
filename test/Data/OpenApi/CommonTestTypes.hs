@@ -259,6 +259,30 @@ playersSchemaJSON = [aesonQQ|
 |]
 
 -- ========================================================================
+-- Player (with type param)
+-- ========================================================================
+
+newtype PlayerPoly a = PlayerPoly
+  { position' :: PointG a
+  } deriving (Generic)
+instance (ToSchema a) => ToSchema (PlayerPoly a)
+
+playerPolySchemaJSON :: Value
+playerPolySchemaJSON = [aesonQQ|
+{
+  "type": "object",
+  "properties":
+    {
+      "position":
+        {
+          "$ref": "#/components/schemas/Point"
+        }
+    },
+  "required": ["position"]
+}
+|]
+
+-- ========================================================================
 -- Character (sum type with ref and record in alternative)
 -- ========================================================================
 
@@ -510,6 +534,18 @@ pointSchemaJSON = [aesonQQ|
   "required": ["x", "y"]
 }
 |]
+
+-- ========================================================================
+-- Point (record data type with custom fieldLabelModifier)
+-- ========================================================================
+
+data PointG a = PointG
+  { pointGX :: a
+  , pointGY :: a
+  } deriving (Generic)
+
+instance ToSchema a => ToSchema (PointG a) where
+  declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
 
 -- ========================================================================
 -- Point (record data type with multiple fields)

@@ -95,6 +95,7 @@ spec = do
       context "(Int, Float)" $ checkSchemaName Nothing (Proxy :: Proxy (Int, Float))
       context "Person" $ checkSchemaName (Just "Person") (Proxy :: Proxy Person)
       context "Shade" $ checkSchemaName (Just "Shade") (Proxy :: Proxy Shade)
+      context "Player (polymorphic record)" $ checkSchemaName (Just "PlayerPoly__40_PointG_Int_41_") (Proxy :: Proxy (PlayerPoly (PointG Int)))
   describe "Generic Definitions" $ do
     context "Unit" $ checkDefs (Proxy :: Proxy Unit) []
     context "Paint" $ checkDefs (Proxy :: Proxy Paint) ["Color"]
