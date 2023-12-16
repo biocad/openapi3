@@ -624,7 +624,9 @@ instance ToSchema Float       where declareNamedSchema = plain . paramSchemaToSc
 instance (Typeable (Fixed a), HasResolution a) => ToSchema (Fixed a) where declareNamedSchema = plain . paramSchemaToSchema
 
 instance ToSchema a => ToSchema (Maybe a) where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy a)
+  declareNamedSchema _ = do
+    ref <- declareSchemaRef (Proxy @a)
+    pure $ unnamed $ mempty & oneOf ?~ [Inline $ mempty & type_ ?~ OpenApiNull, ref]
 
 instance (ToSchema a, ToSchema b) => ToSchema (Either a b) where
   -- To match Aeson instance
@@ -1017,10 +1019,7 @@ instance {-# OVERLAPPING #-} (Selector s, ToSchema c) => GToSchema (S1 s (K1 i (
 instance {-# OVERLAPPABLE #-} (Selector s, GToSchema f) => GToSchema (S1 s f) where
   gdeclareNamedSchema opts _ = fmap unnamed . withFieldSchema opts (Proxy2 :: Proxy2 s f) True
 
-instance {-# OVERLAPPING #-} ToSchema c => GToSchema (K1 i (Maybe c)) where
-  gdeclareNamedSchema _ _ _ = declareNamedSchema (Proxy :: Proxy c)
-
-instance {-# OVERLAPPABLE #-} ToSchema c => GToSchema (K1 i c) where
+instance ToSchema c => GToSchema (K1 i c) where
   gdeclareNamedSchema _ _ _ = declareNamedSchema (Proxy :: Proxy c)
 
 instance ( GSumToSchema f
