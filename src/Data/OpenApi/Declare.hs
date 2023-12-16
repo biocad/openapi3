@@ -52,7 +52,7 @@ instance (Applicative m, Monad m, Monoid d) => Applicative (DeclareT d m) where
     return (mappend d' d'', f x)
 
 instance (Applicative m, Monad m, Monoid d) => Monad (DeclareT d m) where
-  return x = DeclareT (\_ -> pure (mempty, x))
+  return = pure
   DeclareT dx >>= f = DeclareT $ \d -> do
     ~(d',  x) <- dx d
     ~(d'', y) <- runDeclareT (f x) (mappend d d')

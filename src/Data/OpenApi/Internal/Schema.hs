@@ -43,6 +43,7 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Int
 import Data.IntSet (IntSet)
 import Data.IntMap (IntMap)
+import Data.Kind
 import Data.List (sort)
 import Data.List.NonEmpty.Compat (NonEmpty)
 import Data.Map (Map)
@@ -587,7 +588,7 @@ sketchStrictSchema = go . toJSON
       where
         names = objectKeys o
 
-class GToSchema (f :: * -> *) where
+class GToSchema (f :: Type -> Type) where
   gdeclareNamedSchema :: SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 
 instance {-# OVERLAPPABLE #-} ToSchema a => ToSchema [a] where
@@ -1031,7 +1032,9 @@ instance ( GSumToSchema f
 
 gdeclareNamedSumSchema :: GSumToSchema f => SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 gdeclareNamedSumSchema opts proxy _
-  | allNullaryToStringTag opts && allNullary = pure $ unnamed (toStringTag sumSchemas)
+  | allNullaryToStringTag opts && allNullary = pure $ unnamed $ mempty
+      & type_ ?~ OpenApiString
+      & enum_ ?~ map (String . fst) sumSchemas
   | otherwise = do
     (schemas, _) <- runWriterT declareSumSchema
     return $ unnamed $ mempty
@@ -1040,13 +1043,9 @@ gdeclareNamedSumSchema opts proxy _
     declareSumSchema = gsumToSchema opts proxy
     (sumSchemas, All allNullary) = undeclare (runWriterT declareSumSchema)
 
-    toStringTag schemas = mempty
-      & type_ ?~ OpenApiString
-      & enum_ ?~ map (String . fst) sumSchemas
-
 type AllNullary = All
 
-class GSumToSchema (f :: * -> *)  where
+class GSumToSchema (f :: Type -> Type)  where
   gsumToSchema :: SchemaOptions -> Proxy f -> WriterT AllNullary (Declare (Definitions Schema)) [(T.Text, Referenced Schema)]
 
 instance (GSumToSchema f, GSumToSchema g) => GSumToSchema (f :+: g) where
