@@ -24,7 +24,7 @@ module Data.OpenApi.Internal.Schema where
 import Prelude ()
 import Prelude.Compat
 
-import Control.Lens hiding (allOf)
+import Control.Lens hiding (allOf, anyOf)
 import Data.Data.Lens (template)
 
 import Control.Applicative ((<|>))
@@ -626,7 +626,8 @@ instance (Typeable (Fixed a), HasResolution a) => ToSchema (Fixed a) where decla
 instance ToSchema a => ToSchema (Maybe a) where
   declareNamedSchema _ = do
     ref <- declareSchemaRef (Proxy @a)
-    pure $ unnamed $ mempty & oneOf ?~ [Inline $ mempty & type_ ?~ OpenApiNull, ref]
+    -- NB: using 'oneOf' goes wrong for nested Maybe's as both subschemas match 'null'.
+    pure $ unnamed $ mempty & anyOf ?~ [Inline $ mempty & type_ ?~ OpenApiNull, ref]
 
 instance (ToSchema a, ToSchema b) => ToSchema (Either a b) where
   -- To match Aeson instance

@@ -207,7 +207,7 @@ personSchemaJSON = [aesonQQ|
       "phone":  { "type": "integer" },
       "email":
         {
-          "oneOf" :
+          "anyOf" :
             [
               { "type" : "null" },
               { "type": "string" }
@@ -876,7 +876,7 @@ singleMaybeFieldSchemaJSON = [aesonQQ|
     {
       "singleMaybeField":
         {
-          "oneOf" :
+          "anyOf" :
             [
               { "type" : "null" },
               { "type": "string" }

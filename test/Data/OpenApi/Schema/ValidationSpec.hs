@@ -86,6 +86,7 @@ spec = do
     prop "TL.Text" $ shouldValidate (Proxy :: Proxy TL.Text)
     prop "[String]" $ shouldValidate (Proxy :: Proxy [String])
     prop "(Maybe [Int])" $ shouldValidate (Proxy :: Proxy (Maybe [Int]))
+    prop "(Maybe (Maybe Int))" $ shouldValidate (Proxy :: Proxy (Maybe (Maybe Int)))
     prop "(IntMap String)" $ shouldValidate (Proxy :: Proxy (IntMap String))
     prop "(Set Bool)" $ shouldValidate (Proxy :: Proxy (Set Bool))
     prop "(NonEmpty Bool)" $ shouldValidate (Proxy :: Proxy (NonEmpty Bool))
