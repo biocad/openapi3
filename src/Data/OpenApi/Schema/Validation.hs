@@ -81,7 +81,7 @@ import Data.OpenApi.Internal.Schema.Validation
 -- >>> let validate = validateJSON defs sch
 -- >>> validate [aesonQQ|{"name" : "Nick", "age" : 18}|]
 -- []
--- >>> validate [aesonQQ|{"name" : "Nick", "email" : null}|]
+-- >>> validate [aesonQQ|{"name" : "Nick", "age" : null}|]
 -- []
 -- >>> validate [aesonQQ|{"name" : "Nick"}|]
 -- []
