@@ -34,6 +34,8 @@ schemaGen _ schema
     | Just cases <- schema  ^. enum_  = elements cases
 schemaGen defns schema
     | Just variants <- schema ^. oneOf = schemaGen defns =<< elements (dereference defns <$> variants)
+schemaGen defns schema
+    | Just variants <- schema ^. anyOf = schemaGen defns =<< elements (dereference defns <$> variants)
 schemaGen defns schema =
     case schema ^. type_ of
       Nothing ->

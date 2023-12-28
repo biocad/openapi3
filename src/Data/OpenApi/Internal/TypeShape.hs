@@ -3,9 +3,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 
 module Data.OpenApi.Internal.TypeShape where
 
+import Data.Kind
 import Data.Proxy
 import GHC.Generics
 import GHC.TypeLits
@@ -46,7 +48,7 @@ type family GenericHasSimpleShape t (f :: Symbol) (s :: TypeShape) :: Constraint
       )
 
 -- | Infer a 'TypeShape' for a generic representation of a type.
-type family GenericShape (g :: * -> *) :: TypeShape
+type family GenericShape (g :: Type -> Type) :: TypeShape
 
 type instance GenericShape (f :*: g)        = ProdCombine  (GenericShape f) (GenericShape g)
 type instance GenericShape (f :+: g)        = SumCombine   (GenericShape f) (GenericShape g)

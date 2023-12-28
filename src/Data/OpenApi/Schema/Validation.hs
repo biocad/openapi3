@@ -34,10 +34,13 @@ import Data.OpenApi.Internal.Schema.Validation
 -- $setup
 -- >>> import Control.Lens
 -- >>> import Data.Aeson
+-- >>> import Data.Aeson.QQ.Simple
 -- >>> import Data.Proxy
 -- >>> import Data.OpenApi
+-- >>> import Data.OpenApi.Declare
 -- >>> import GHC.Generics
 -- >>> :set -XDeriveGeneric
+-- >>> :set -XQuasiQuotes
 
 -- $howto
 --
@@ -67,24 +70,18 @@ import Data.OpenApi.Internal.Schema.Validation
 
 -- $maybe
 --
--- Because @'Maybe' a@ has the same schema as @a@, validation
--- generally fails for @null@ JSON:
---
--- >>> validateToJSON (Nothing :: Maybe String)
--- ["expected JSON value of type OpenApiString"]
--- >>> validateToJSON ([Just "hello", Nothing] :: [Maybe String])
--- ["expected JSON value of type OpenApiString"]
--- >>> validateToJSON (123, Nothing :: Maybe String)
--- ["expected JSON value of type OpenApiString"]
---
--- However, when @'Maybe' a@ is a type of a record field,
--- validation takes @'required'@ property of the @'Schema'@
--- into account:
+-- The behavior is in line with "aeson" behavior for derived instances.
+-- When @'Maybe' a@ is a type of a record field,
+-- validation accepts both ommited field and null as a field value:
 --
 -- >>> data Person = Person { name :: String, age :: Maybe Int } deriving Generic
 -- >>> instance ToJSON Person
 -- >>> instance ToSchema Person
--- >>> validateToJSON (Person "Nick" (Just 24))
+-- >>> let (defs, sch) = runDeclare (declareSchema (Proxy :: Proxy Person)) mempty
+-- >>> let validate = validateJSON defs sch
+-- >>> validate [aesonQQ|{"name" : "Nick", "age" : 18}|]
 -- []
--- >>> validateToJSON (Person "Nick" Nothing)
+-- >>> validate [aesonQQ|{"name" : "Nick", "age" : null}|]
+-- []
+-- >>> validate [aesonQQ|{"name" : "Nick"}|]
 -- []
