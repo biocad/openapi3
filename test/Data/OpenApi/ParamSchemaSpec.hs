@@ -27,7 +27,7 @@ checkToParamSchema proxy js = (toParamSchema proxy :: Schema) <=> js
 spec :: Spec
 spec = do
   describe "Generic ToParamSchema" $ do
-    context "Unit" $ checkToParamSchema (Proxy :: Proxy Unit) unitSchemaJSON
+    context "Unit" $ checkToParamSchema (Proxy :: Proxy Unit) unitParamSchemaJSON
     context "Color (bounded enum)" $ checkToParamSchema (Proxy :: Proxy Color) colorSchemaJSON
     context "Status (constructorTagModifier)" $ checkToParamSchema (Proxy :: Proxy Status) statusSchemaJSON
     context "Unary records" $ do

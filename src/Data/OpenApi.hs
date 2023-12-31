@@ -372,7 +372,7 @@ import Data.OpenApi.Internal
 -- >>> instance ToSchema Error
 -- >>> BSL.putStrLn $ encodePretty $ toSchema (Proxy :: Proxy Error)
 -- {
---     "oneOf": [
+--     "anyOf": [
 --         {
 --             "properties": {
 --                 "tag": {

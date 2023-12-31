@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports    #-}
@@ -90,6 +91,8 @@ spec = do
     prop "MissingRequired" $ shouldNotValidate (Proxy :: Proxy MissingRequired)
     prop "MissingProperty" $ shouldNotValidate (Proxy :: Proxy MissingProperty)
     prop "WrongPropType" $ shouldNotValidate (Proxy :: Proxy WrongPropType)
+    prop "SingleUnary" $ shouldValidate (Proxy :: Proxy (SingleUnary Int))
+    prop "SingleUnaryTagged" $ shouldValidate (Proxy :: Proxy (SingleUnaryTagged Int))
 
 -- =============================
 -- Data types and bunk instances
@@ -166,3 +169,22 @@ instance ToSchema WrongPropType where
         & type_ ?~ OpenApiObject
         & properties .~ [("propE", boolSchema)]
         & required .~ ["propE"]
+
+data SingleUnary a = SingleUnary a
+  deriving (Show, Generic)
+
+instance (FromJSON a) => FromJSON (SingleUnary a)
+instance (ToSchema a) => ToSchema (SingleUnary a)
+
+data SingleUnaryTagged a = SingleUnaryTagged a
+  deriving (Show, Generic)
+
+instance (FromJSON a) => FromJSON (SingleUnaryTagged a) where
+  parseJSON = genericParseJSON
+    defaultOptions{Data.Aeson.tagSingleConstructors = True}
+instance (ToJSON a) => ToJSON (SingleUnaryTagged a) where
+  toJSON = genericToJSON
+    defaultOptions{Data.Aeson.tagSingleConstructors = True}
+instance (ToSchema a) => ToSchema (SingleUnaryTagged a) where
+  declareNamedSchema = genericDeclareNamedSchema
+    defaultSchemaOptions{Data.OpenApi.tagSingleConstructors = True}

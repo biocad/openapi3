@@ -66,6 +66,7 @@ spec :: Spec
 spec = do
   describe "Generic ToSchema" $ do
     context "Unit" $ checkToSchema (Proxy :: Proxy Unit) unitSchemaJSON
+    context "UnitTagged" $ checkToSchema (Proxy :: Proxy UnitTagged) unitTaggedSchemaJSON
     context "Person" $ checkToSchema (Proxy :: Proxy Person) personSchemaJSON
     context "ISPair" $ checkToSchema (Proxy :: Proxy ISPair) ispairSchemaJSON
     context "Point (fieldLabelModifier)" $ checkToSchema (Proxy :: Proxy Point) pointSchemaJSON
