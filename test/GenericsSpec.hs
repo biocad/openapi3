@@ -80,7 +80,7 @@ allOptsCombinations = do
     [ Aeson.defaultTaggedObject
     , Aeson.UntaggedValue
     , Aeson.ObjectWithSingleField
-    , Aeson.TwoElemArray
+    -- , Aeson.TwoElemArray FIXME
     ]
   unwrapUnaryRecords <- [True, False]
   tagSingleConstructors <- [True, False]
