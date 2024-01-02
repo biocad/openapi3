@@ -28,8 +28,8 @@ import           Prelude                             ()
 import           Prelude.Compat
 
 import           Control.Applicative
-import           Control.Lens                        hiding (allOf)
-import           Control.Monad                       (forM, forM_, when)
+import           Control.Lens                        hiding (allOf, anyOf)
+import           Control.Monad                       (foldM, forM, forM_, when)
 
 import           Data.Aeson                          hiding (Result)
 #if MIN_VERSION_aeson(2,0,0)
@@ -481,15 +481,19 @@ inferParamSchemaTypes sch = concat
   ]
 
 validateSchemaType :: Value -> Validation Schema ()
-validateSchemaType val = withSchema $ \sch ->
+validateSchemaType val = withSchema $ \sch -> do
+  let validateSub var = (True <$ validateWithSchemaRef var val) <|> (return False)
   case sch of
     (view oneOf -> Just variants) -> do
-      res <- forM variants $ \var ->
-        (True <$ validateWithSchemaRef var val) <|> (return False)
+      res <- forM variants validateSub
       case length $ filter id res of
         0 -> invalid $ "Value not valid under any of 'oneOf' schemas: " ++ show val
         1 -> valid
         _ -> invalid $ "Value matches more than one of 'oneOf' schemas: " ++ show val
+    (view anyOf -> Just variants) -> do
+      res <- foldM (\res var -> if res then pure res else validateSub var) False variants
+      if res then valid else
+        invalid $ "Value does not match any of 'anyOf' schemas: " ++ show val
     (view allOf -> Just variants) -> do
       -- Default semantics for Validation Monad will abort when at least one
       -- variant does not match.

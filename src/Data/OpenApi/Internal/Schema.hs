@@ -970,7 +970,10 @@ gsumSchema opts proxy
         schemas <- gsumToSchema opts proxy
         case schemas of
           [Inline single] -> pure $ unnamed single
-          _ -> pure $ unnamed $ mempty & oneOf ?~ schemas
+          -- We use laxer 'anyOf' property instead of 'oneOf'.
+          -- The latter does not work for, e.g. @data Foo = Foo | NotFoo String@
+          -- with sumEncoding=UntaggedValue, as both branches match.
+          _ -> pure $ unnamed $ mempty & anyOf ?~ schemas
 
 instance (GProductSchemas (f :*: g)) => GToSchema (C1 c (f :*: g)) where
   gdeclareNamedSchema opts _ = gdeclareNamedSchema opts $ Proxy @(f :*: g)
