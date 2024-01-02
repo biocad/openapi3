@@ -1109,13 +1109,13 @@ gsumConToSchemaWith ref opts _ = case schema of
           -- to the record, as Aeson does it.
           Just (Inline sub) | sub ^. type_ == Just OpenApiObject && isRecord -> Inline $ sub
             & required <>~ [T.pack tagField]
-            & properties . at (T.pack tagField) ?~ Inline (mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])
+            & properties . at (T.pack tagField) ?~ tagString
 
           -- If it is not a record, we need to put subschema into "contents" field.
           _ | not isRecord -> Inline $ mempty
             & type_ ?~ OpenApiObject
             & required .~ [T.pack tagField]
-            & properties . at (T.pack tagField) ?~ Inline (mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])
+            & properties . at (T.pack tagField) ?~ tagString
               -- If constructor is nullary, there is no content.
             & case ref of
                 Just r -> (properties . at (T.pack contentsField) ?~ r) . (required <>~ [T.pack contentsField])
@@ -1126,7 +1126,7 @@ gsumConToSchemaWith ref opts _ = case schema of
             & allOf ?~ [Inline $ mempty
               & type_ ?~ OpenApiObject
               & required .~ (T.pack tagField : if isRecord then [] else [T.pack contentsField])
-              & properties . at (T.pack tagField) ?~ Inline (mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag])]
+              & properties . at (T.pack tagField) ?~ tagString]
             & if isRecord
                  then allOf . _Just <>~ [refOrNullary]
                  else allOf . _Just <>~ [Inline $ mempty & type_ ?~ OpenApiObject & properties . at (T.pack contentsField) ?~ refOrNullary]
@@ -1135,13 +1135,18 @@ gsumConToSchemaWith ref opts _ = case schema of
         & type_ ?~ OpenApiObject
         & required .~ [tag]
         & properties . at tag ?~ refOrNullary
-      TwoElemArray -> error "unrepresentable in OpenAPI 3"
+      TwoElemArray -> Inline $ mempty
+        & type_ ?~ OpenApiArray
+        & items ?~ OpenApiItemsArray [tagString, fromMaybe (Inline nullarySchema) ref]
+        & minItems ?~ 2
+        & maxItems ?~ 2
 
     constructorName = conName (Proxy3 :: Proxy3 c f p)
     tag = T.pack (constructorTagModifier opts constructorName)
+    tagString = Inline $ mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag]
     isRecord = conIsRecord (Proxy3 :: Proxy3 c f p)
     refOrNullary = fromMaybe (Inline nullarySchema) ref
-    refOrEnum = fromMaybe (Inline $ mempty & type_ ?~ OpenApiString & enum_ ?~ [String tag]) ref
+    refOrEnum = fromMaybe tagString ref
 
 class GSumToSchema (f :: Type -> Type) where
   gsumToSchema :: SchemaOptions -> Proxy f -> Declare (Definitions Schema) [Referenced Schema]
