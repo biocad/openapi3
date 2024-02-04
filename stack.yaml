@@ -2,4 +2,4 @@ resolver: lts-21.24
 packages:
 - '.'
 ghc-options:
-  $locals: -Wall -Wno-unused-imports -Wno-dodgy-imports -Wno-name-shadowing
+  $locals: -Wall -Wno-unused-imports -Wno-dodgy-imports -Wno-name-shadowing -Wredundant-constraints

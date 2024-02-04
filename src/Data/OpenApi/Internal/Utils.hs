@@ -117,11 +117,11 @@ instance SwaggerMonoid [a]
 instance Ord a => SwaggerMonoid (Set a)
 instance Ord k => SwaggerMonoid (Map k v)
 
-instance (Eq k, Hashable k) => SwaggerMonoid (HashMap k v) where
+instance (Hashable k) => SwaggerMonoid (HashMap k v) where
   swaggerMempty = mempty
   swaggerMappend = HashMap.unionWith (\_old new -> new)
 
-instance (Eq k, Hashable k) => SwaggerMonoid (InsOrdHashMap k v) where
+instance (Hashable k) => SwaggerMonoid (InsOrdHashMap k v) where
   swaggerMempty = mempty
   swaggerMappend = InsOrdHashMap.unionWith (\_old new -> new)
 

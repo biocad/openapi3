@@ -1151,7 +1151,7 @@ instance SwaggerMonoid Responses
 instance SwaggerMonoid Response
 instance SwaggerMonoid ExternalDocs
 instance SwaggerMonoid Operation
-instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
+instance (Hashable a) => SwaggerMonoid (InsOrdHashSet a)
 instance SwaggerMonoid SecurityDefinitions
 instance SwaggerMonoid OpenApiSpecVersion
 
