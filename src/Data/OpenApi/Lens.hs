@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -89,15 +90,22 @@ _OpenApiItemsObject
 
 type instance Index Responses = HttpStatusCode
 type instance Index Operation = HttpStatusCode
+type instance Index SpecificationExtensions = Text
 
 type instance IxValue Responses = Referenced Response
 type instance IxValue Operation = Referenced Response
+type instance IxValue SpecificationExtensions = Value
 
 instance Ixed Responses where ix n = responses . ix n
 instance At   Responses where at n = responses . at n
 
 instance Ixed Operation where ix n = responses . ix n
 instance At   Operation where at n = responses . at n
+
+instance Ixed SpecificationExtensions where
+  ix n = coerced @_ @_ @(Definitions Value) . ix n
+instance At   SpecificationExtensions where
+  at n = coerced @_ @_ @(Definitions Value) . at n
 
 instance HasType NamedSchema (Maybe OpenApiType) where type_ = schema.type_
 

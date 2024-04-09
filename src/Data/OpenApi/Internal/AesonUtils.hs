@@ -49,13 +49,13 @@ import Data.OpenApi.Aeson.Compat (keyToString, objectToList, stringToKey)
 data SwaggerAesonOptions = SwaggerAesonOptions
     { _saoPrefix          :: String
     , _saoAdditionalPairs :: [Pair]
-    , _saoSubObject       :: Maybe String
+    , _saoSubObject       :: [String]
     }
 
 mkSwaggerAesonOptions
     :: String  -- ^ prefix
     -> SwaggerAesonOptions
-mkSwaggerAesonOptions pfx = SwaggerAesonOptions pfx [] Nothing
+mkSwaggerAesonOptions pfx = SwaggerAesonOptions pfx [] []
 
 makeLenses ''SwaggerAesonOptions
 
@@ -154,7 +154,7 @@ sopSwaggerGenericToJSON'' (SwaggerAesonOptions prefix _ sub) = go
     go :: (All ToJSON ys, All Eq ys) => NP I ys -> NP FieldInfo ys -> NP Maybe ys -> [Pair]
     go  Nil Nil Nil = []
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
-        | Just name' == sub = case json of
+        | name' `elem` sub = case json of
               Object m -> objectToList m ++ rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show json
@@ -227,9 +227,9 @@ sopSwaggerGenericParseJSON'' (SwaggerAesonOptions prefix _ sub) obj = go
     go :: (All FromJSON ys, All Eq ys) => NP FieldInfo ys -> NP Maybe ys -> Parser (NP I ys)
     go  Nil Nil = pure Nil
     go (FieldInfo name :* names) (def :* defs)
-        | Just name' == sub =
+        | name' `elem` sub =
             -- Note: we might strip fields of outer structure.
-            cons <$> (withDef $ parseJSON $ Object obj) <*> rest
+            cons <$> withDef (parseJSON $ Object obj) <*> rest
         | otherwise = case def of
             Just def' -> cons <$> obj .:? stringToKey name' .!= def' <*> rest
             Nothing  ->  cons <$> obj .: stringToKey name' <*> rest
@@ -294,7 +294,7 @@ sopSwaggerGenericToEncoding'' (SwaggerAesonOptions prefix _ sub) = go
     go :: (All ToJSON ys, All Eq ys) => NP I ys -> NP FieldInfo ys -> NP Maybe ys -> Series
     go  Nil Nil Nil = mempty
     go (I x :* xs) (FieldInfo name :* names) (def :* defs)
-        | Just name' == sub = case toJSON x of
+        | name' `elem` sub = case toJSON x of
               Object m -> pairsToSeries (objectToList m) <> rest
               Null     -> rest
               _        -> error $ "sopSwaggerGenericToJSON: subjson is not an object: " ++ show (toJSON x)
