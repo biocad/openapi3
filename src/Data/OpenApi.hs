@@ -214,7 +214,7 @@ import Data.OpenApi.Internal
 --
 -- >>> :{
 -- BSL.putStrLn $ encodePretty $ (mempty :: OpenApi)
---   & components . schemas .~ IOHM.fromList [ ("User", mempty & type_ ?~ OpenApiString) ]
+--   & components . schemas .~ IOHM.fromList [ ("User", Inline $ mempty & type_ ?~ OpenApiString) ]
 --   & paths .~
 --     IOHM.fromList [ ("/user", mempty & get ?~ (mempty
 --         & at 200 ?~ ("OK" & _Inline.content.at "application/json" ?~ (mempty & schema ?~ Ref (Reference "User")))

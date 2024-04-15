@@ -39,7 +39,7 @@ spec = do
   describe "OAuth2 Security Definitions with empty Scope" $ oAuth2SecurityDefinitionsEmptyExample <=> oAuth2SecurityDefinitionsEmptyExampleJSON
   describe "Composition Schema Example" $ compositionSchemaExample <=> compositionSchemaExampleJSON
   describe "Swagger Object" $ do
-    context "Example with no paths" $ do 
+    context "Example with no paths" $ do
       emptyPathsFieldExample <=> emptyPathsFieldExampleJSON
       it "fails to parse a spec with a wrong Openapi spec version" $ do
         (fromJSON wrongVersionExampleJSON :: Result OpenApi) `shouldBe` Error "The provided version 3.0.4 is out of the allowed range >=3.0.0 && <=3.0.3"
@@ -49,6 +49,11 @@ spec = do
         fromJSON petstoreExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: OpenApi) -> True; _ -> False)
       it "roundtrips: fmap toJSON . fromJSON" $ do
         (toJSON :: OpenApi -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
+    context "Ref schema example" $ do
+      it "decodes successfully" $ do
+        fromJSON refSchemaExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: OpenApi) -> True; _ -> False)
+      it "roundtrips: fmap toJSON . fromJSON" $ do
+        (toJSON :: OpenApi -> Value) <$> fromJSON refSchemaExampleJSON `shouldBe` Success refSchemaExampleJSON
     context "Security schemes" $ do
       it "merged correctly" $ do
         let merged = oAuth2SecurityDefinitionsReadOpenApi <> oAuth2SecurityDefinitionsWriteOpenApi <> oAuth2SecurityDefinitionsEmptyOpenApi
@@ -454,17 +459,17 @@ responsesDefinitionExampleJSON = [aesonQQ|
 
 securityDefinitionsExample :: SecurityDefinitions
 securityDefinitionsExample = SecurityDefinitions
-  [ ("api_key", SecurityScheme
+  [ ("api_key", Inline (SecurityScheme
       { _securitySchemeType = SecuritySchemeApiKey (ApiKeyParams "api_key" ApiKeyHeader)
-      , _securitySchemeDescription = Nothing })
-  , ("petstore_auth", SecurityScheme
+      , _securitySchemeDescription = Nothing }))
+  , ("petstore_auth", Inline (SecurityScheme
       { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
                 [ ("write:pets",  "modify pets in your account")
                 , ("read:pets", "read your pets") ] } )
-      , _securitySchemeDescription = Nothing }) ]
+      , _securitySchemeDescription = Nothing })) ]
 
 securityDefinitionsExampleJSON :: Value
 securityDefinitionsExampleJSON = [aesonQQ|
@@ -492,35 +497,35 @@ securityDefinitionsExampleJSON = [aesonQQ|
 
 oAuth2SecurityDefinitionsReadExample :: SecurityDefinitions
 oAuth2SecurityDefinitionsReadExample = SecurityDefinitions
-  [ ("petstore_auth", SecurityScheme
+  [ ("petstore_auth", Inline (SecurityScheme
       { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
               [ ("read:pets", "read your pets") ] } )
-      , _securitySchemeDescription = Nothing })
+      , _securitySchemeDescription = Nothing }))
   ]
 
 oAuth2SecurityDefinitionsWriteExample :: SecurityDefinitions
 oAuth2SecurityDefinitionsWriteExample = SecurityDefinitions
-  [ ("petstore_auth", SecurityScheme
+  [ ("petstore_auth", Inline (SecurityScheme
       { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
                 [ ("write:pets", "modify pets in your account") ] } )
-      , _securitySchemeDescription = Nothing })
+      , _securitySchemeDescription = Nothing }))
   ]
 
 oAuth2SecurityDefinitionsEmptyExample :: SecurityDefinitions
 oAuth2SecurityDefinitionsEmptyExample = SecurityDefinitions
-  [ ("petstore_auth", SecurityScheme
+  [ ("petstore_auth", Inline (SecurityScheme
       { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes = []
             } )
-      , _securitySchemeDescription = Nothing })
+      , _securitySchemeDescription = Nothing }))
   ]
 
 oAuth2SecurityDefinitionsExample :: SecurityDefinitions
@@ -1001,5 +1006,27 @@ compositionSchemaExampleJSON = [aesonQQ|
         }
       }
   ]
+}
+|]
+
+refSchemaExampleJSON :: Value
+refSchemaExampleJSON = [aesonQQ|
+{
+  "openapi": "3.0.3",
+  "info": {
+    "version": "1.0.0",
+    "title": "Example using references"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "Foo": {
+        "type": "string"
+      },
+      "Bar": {
+        "$ref": "#/components/schemas/Foo"
+      }
+    }
+  }
 }
 |]
