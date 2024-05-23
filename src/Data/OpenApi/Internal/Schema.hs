@@ -16,7 +16,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 -- For TypeErrors
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 module Data.OpenApi.Internal.Schema where
@@ -43,6 +42,7 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Int
 import Data.IntSet (IntSet)
 import Data.IntMap (IntMap)
+import Data.Kind
 import Data.List (sort)
 import Data.List.NonEmpty.Compat (NonEmpty)
 import Data.Map (Map)
@@ -151,7 +151,7 @@ class Typeable a => ToSchema a where
   -- Note that the schema itself is included in definitions
   -- only if it is recursive (and thus needs its definition in scope).
   declareNamedSchema :: Proxy a -> Declare (Definitions Schema) NamedSchema
-  default declareNamedSchema :: (Generic a, GToSchema (Rep a)) =>
+  default declareNamedSchema :: (GToSchema (Rep a)) =>
     Proxy a -> Declare (Definitions Schema) NamedSchema
   declareNamedSchema = genericDeclareNamedSchema defaultSchemaOptions
 
@@ -587,7 +587,7 @@ sketchStrictSchema = go . toJSON
       where
         names = objectKeys o
 
-class GToSchema (f :: * -> *) where
+class GToSchema (f :: Type -> Type) where
   gdeclareNamedSchema :: SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 
 instance {-# OVERLAPPABLE #-} ToSchema a => ToSchema [a] where
@@ -770,14 +770,14 @@ toSchemaBoundedIntegral _ = mempty
 -- | Default generic named schema for @'Bounded'@, @'Integral'@ types.
 genericToNamedSchemaBoundedIntegral :: forall a d f.
   ( Bounded a, Integral a
-  , Generic a, Rep a ~ D1 d f, Datatype d)
+  , Rep a ~ D1 d f, Datatype d)
   => SchemaOptions -> Proxy a -> NamedSchema
 genericToNamedSchemaBoundedIntegral opts proxy
   = genericNameSchema opts proxy (toSchemaBoundedIntegral proxy)
 
 -- | Declare a named schema for a @newtype@ wrapper.
 genericDeclareNamedSchemaNewtype :: forall a d c s i inner.
-  (Generic a, Datatype d, Rep a ~ D1 d (C1 c (S1 s (K1 i inner))))
+  (Datatype d, Rep a ~ D1 d (C1 c (S1 s (K1 i inner))))
   => SchemaOptions                                          -- ^ How to derive the name.
   -> (Proxy inner -> Declare (Definitions Schema) Schema)   -- ^ How to create a schema for the wrapped type.
   -> Proxy a
@@ -869,7 +869,7 @@ toSchemaBoundedEnumKeyMapping :: forall map key value.
 toSchemaBoundedEnumKeyMapping = flip evalDeclare mempty . declareSchemaBoundedEnumKeyMapping
 
 -- | A configurable generic @'Schema'@ creator.
-genericDeclareSchema :: (Generic a, GToSchema (Rep a), Typeable a) =>
+genericDeclareSchema :: (GToSchema (Rep a), Typeable a) =>
   SchemaOptions -> Proxy a -> Declare (Definitions Schema) Schema
 genericDeclareSchema opts proxy = _namedSchemaSchema <$> genericDeclareNamedSchema opts proxy
 
@@ -885,7 +885,7 @@ genericDeclareSchema opts proxy = _namedSchemaSchema <$> genericDeclareNamedSche
 --
 -- >>> _namedSchemaName $ undeclare $ genericDeclareNamedSchema defaultSchemaOptions (Proxy :: Proxy (Either Int Bool))
 -- Just "Either_Int_Bool"
-genericDeclareNamedSchema :: forall a. (Generic a, GToSchema (Rep a), Typeable a) =>
+genericDeclareNamedSchema :: forall a. (GToSchema (Rep a), Typeable a) =>
   SchemaOptions -> Proxy a -> Declare (Definitions Schema) NamedSchema
 genericDeclareNamedSchema opts _ =
   rename (Just $ T.pack name) <$> gdeclareNamedSchema opts (Proxy :: Proxy (Rep a)) mempty
@@ -898,7 +898,7 @@ genericDeclareNamedSchema opts _ =
 
 -- | Derive a 'Generic'-based name for a datatype and assign it to a given 'Schema'.
 genericNameSchema :: forall a d f.
-  (Generic a, Rep a ~ D1 d f, Datatype d)
+  (Rep a ~ D1 d f, Datatype d)
   => SchemaOptions -> Proxy a -> Schema -> NamedSchema
 genericNameSchema opts _ = NamedSchema (gdatatypeSchemaName opts (Proxy :: Proxy d))
 
@@ -911,7 +911,7 @@ gdatatypeSchemaName opts _ = case orig of
     name = datatypeNameModifier opts orig
 
 -- | Construct 'NamedSchema' usinng 'ToParamSchema'.
-paramSchemaToNamedSchema :: (ToParamSchema a, Generic a, Rep a ~ D1 d f, Datatype d) =>
+paramSchemaToNamedSchema :: (ToParamSchema a, Rep a ~ D1 d f, Datatype d) =>
   SchemaOptions -> Proxy a -> NamedSchema
 paramSchemaToNamedSchema opts proxy = genericNameSchema opts proxy (paramSchemaToSchema proxy)
 
@@ -947,7 +947,7 @@ instance {-# OVERLAPPING #-} Constructor c => GToSchema (C1 c U1) where
   gdeclareNamedSchema = gdeclareNamedSumSchema
 
 -- | Single field constructor.
-instance (Selector s, GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s f)) where
+instance (GToSchema f, GToSchema (S1 s f)) => GToSchema (C1 c (S1 s f)) where
   gdeclareNamedSchema opts _ s
     | unwrapUnaryRecords opts = fieldSchema
     | otherwise =
@@ -1031,7 +1031,9 @@ instance ( GSumToSchema f
 
 gdeclareNamedSumSchema :: GSumToSchema f => SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 gdeclareNamedSumSchema opts proxy _
-  | allNullaryToStringTag opts && allNullary = pure $ unnamed (toStringTag sumSchemas)
+  | allNullaryToStringTag opts && allNullary = pure $ unnamed $ mempty
+      & type_ ?~ OpenApiString
+      & enum_ ?~ map (String . fst) sumSchemas
   | otherwise = do
     (schemas, _) <- runWriterT declareSumSchema
     return $ unnamed $ mempty
@@ -1040,13 +1042,9 @@ gdeclareNamedSumSchema opts proxy _
     declareSumSchema = gsumToSchema opts proxy
     (sumSchemas, All allNullary) = undeclare (runWriterT declareSumSchema)
 
-    toStringTag schemas = mempty
-      & type_ ?~ OpenApiString
-      & enum_ ?~ map (String . fst) sumSchemas
-
 type AllNullary = All
 
-class GSumToSchema (f :: * -> *)  where
+class GSumToSchema (f :: Type -> Type)  where
   gsumToSchema :: SchemaOptions -> Proxy f -> WriterT AllNullary (Declare (Definitions Schema)) [(T.Text, Referenced Schema)]
 
 instance (GSumToSchema f, GSumToSchema g) => GSumToSchema (f :+: g) where
@@ -1054,7 +1052,7 @@ instance (GSumToSchema f, GSumToSchema g) => GSumToSchema (f :+: g) where
     (<>) <$> gsumToSchema opts (Proxy :: Proxy f) <*> gsumToSchema opts (Proxy :: Proxy g)
 
 -- | Convert one component of the sum to schema, to be later combined with @oneOf@.
-gsumConToSchemaWith :: forall c f. (GToSchema (C1 c f), Constructor c) =>
+gsumConToSchemaWith :: forall c f. (Constructor c) =>
   Maybe (Referenced Schema) -> SchemaOptions -> Proxy (C1 c f) -> (T.Text, Referenced Schema)
 gsumConToSchemaWith ref opts _ = (tag, withTitle)
   where

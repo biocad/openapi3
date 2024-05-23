@@ -44,15 +44,15 @@ import Data.Functor.Identity
 newtype DeclareT d m a = DeclareT { runDeclareT :: d -> m (d, a) }
   deriving (Functor)
 
-instance (Applicative m, Monad m, Monoid d) => Applicative (DeclareT d m) where
+instance (Monad m, Monoid d) => Applicative (DeclareT d m) where
   pure x = DeclareT (\_ -> pure (mempty, x))
   DeclareT df <*> DeclareT dx = DeclareT $ \d -> do
     ~(d',  f) <- df d
     ~(d'', x) <- dx (mappend d d')
     return (mappend d' d'', f x)
 
-instance (Applicative m, Monad m, Monoid d) => Monad (DeclareT d m) where
-  return x = DeclareT (\_ -> pure (mempty, x))
+instance (Monad m, Monoid d) => Monad (DeclareT d m) where
+  return = pure
   DeclareT dx >>= f = DeclareT $ \d -> do
     ~(d',  x) <- dx d
     ~(d'', y) <- runDeclareT (f x) (mappend d d')
@@ -84,7 +84,7 @@ class (Applicative m, Monad m) => MonadDeclare d m | m -> d where
   -- | @'look'@ is an action that returns all the output so far.
   look :: m d
 
-instance (Applicative m, Monad m, Monoid d) => MonadDeclare d (DeclareT d m) where
+instance (Monad m, Monoid d) => MonadDeclare d (DeclareT d m) where
   declare d = DeclareT (\_ -> return (d, ()))
   look = DeclareT (\d -> return (mempty, d))
 
