@@ -119,6 +119,7 @@ module Data.OpenApi (
   -- ** Miscellaneous
   MimeList(..),
   URL(..),
+  SpecificationExtensions (..),
 ) where
 
 import Data.OpenApi.Lens
