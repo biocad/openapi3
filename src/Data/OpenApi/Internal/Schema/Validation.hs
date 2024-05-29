@@ -498,7 +498,15 @@ validateSchemaType val = withSchema $ \sch ->
       -- variant does not match.
       forM_ variants $ \var ->
         validateWithSchemaRef var val
-
+    (view not_ -> Just notVariant) -> do
+      -- Attempt to validate against `notVariant`, expecting it to fail.
+      -- `False <$ ...` ensures that a successful validation maps to `False`.
+      -- If the validation fails, `return True` ensures we catch this as the desired outcome.
+      validationResult <- (False <$ validateWithSchemaRef notVariant val) <|> return True
+      if validationResult
+        then valid  -- If the result is `True`, it means `validateWithSchemaRef` failed, which is correct.
+        else invalid $ "Value matches 'not' schema, which it shouldn't: " ++ show val
+        
     _ ->
       case (sch ^. type_, val) of
         -- Type must be set for nullable to have effect
