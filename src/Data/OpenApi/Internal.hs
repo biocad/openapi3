@@ -683,7 +683,7 @@ data Discriminator = Discriminator
     _discriminatorPropertyName :: Text
 
     -- | An object to hold mappings between payload values and schema names or references.
-  , _discriminatorMapping :: InsOrdHashMap Text Text
+  , _discriminatorMapping :: InsOrdHashMap Text ReferenceToSchema
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | A @'Schema'@ with an optional name.
@@ -960,6 +960,9 @@ instance Hashable ExternalDocs
 newtype Reference = Reference { getReference :: Text }
   deriving (Eq, Show, Data, Typeable)
 
+data ReferenceToSchema = ReferenceToSchema { getReferenceToSchema :: Reference }
+  deriving (Eq, Show, Data, Typeable)
+
 data Referenced a
   = Ref Reference
   | Inline a
@@ -1214,6 +1217,9 @@ instance ToJSON Xml where
 instance ToJSON Discriminator where
   toJSON = genericToJSON (jsonPrefix "Discriminator")
 
+instance ToJSON ReferenceToSchema where
+  toJSON (ReferenceToSchema (Reference t)) = String $ "#/components/schemas/" <> t
+
 instance ToJSON OAuth2ImplicitFlow where
   toJSON = genericToJSON (jsonPrefix "OAuth2ImplicitFlow")
 
@@ -1265,6 +1271,10 @@ instance FromJSON ExternalDocs where
 
 instance FromJSON Discriminator where
   parseJSON = genericParseJSON (jsonPrefix "Discriminator")
+
+instance FromJSON ReferenceToSchema where
+  parseJSON (String s) | Text.isPrefixOf "#/components/schemas/" s = pure $ ReferenceToSchema . Reference $ Text.drop 21 s
+  parseJSON _ = fail "FromJSON ReferenceToSchema"
 
 instance FromJSON OAuth2ImplicitFlow where
   parseJSON = genericParseJSON (jsonPrefix "OAuth2ImplicitFlow")
