@@ -12,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Data.OpenApi.Internal where
@@ -26,13 +27,16 @@ import           Data.Aeson            hiding (Encoding)
 import qualified Data.Aeson.KeyMap     as KeyMap
 #endif
 import qualified Data.Aeson.Types      as JSON
+import           Data.Bifunctor        (bimap)
 import           Data.Data             (Constr, Data (..), DataType, Fixity (..), Typeable,
                                         constrIndex, mkConstr, mkDataType)
 import           Data.Hashable         (Hashable (..))
 import qualified Data.HashMap.Strict   as HashMap
 import           Data.HashSet.InsOrd   (InsOrdHashSet)
+import qualified Data.List             as List
 import           Data.Map              (Map)
 import qualified Data.Map              as Map
+import           Data.Maybe            (mapMaybe)
 import           Data.Monoid           (Monoid (..))
 import           Data.Scientific       (Scientific)
 import           Data.Semigroup.Compat (Semigroup (..))
@@ -48,7 +52,7 @@ import           Text.Read             (readMaybe)
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 
-import Data.OpenApi.Aeson.Compat        (deleteKey)
+import Data.OpenApi.Aeson.Compat        (deleteKey, keyToText, objectToList, objectFromList)
 import Data.OpenApi.Internal.AesonUtils (AesonDefaultValue (..), HasSwaggerAesonOptions (..),
                                          mkSwaggerAesonOptions, saoAdditionalPairs, saoSubObject,
                                          sopSwaggerGenericParseJSON, sopSwaggerGenericToEncoding,
@@ -104,6 +108,9 @@ data OpenApi = OpenApi
 
   , -- | The spec of OpenApi this spec adheres to. Must be between 'lowerOpenApiSpecVersion' and 'upperOpenApiSpecVersion'
     _openApiOpenapi :: OpenApiSpecVersion
+
+    -- | Specification Extensions
+  , _openApiExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | This is the lower version of the OpenApi Spec this library can parse or produce
@@ -137,6 +144,9 @@ data Info = Info
     -- | The version of the OpenAPI document (which is distinct from the
     -- OpenAPI Specification version or the API implementation version).
   , _infoVersion :: Text
+
+    -- | Specification Extensions
+  , _infoExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | Contact information for the exposed API.
@@ -149,6 +159,9 @@ data Contact = Contact
 
     -- | The email address of the contact person/organization.
   , _contactEmail :: Maybe Text
+
+    -- | Specification Extensions
+  , _contactExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | License information for the exposed API.
@@ -158,10 +171,13 @@ data License = License
 
     -- | A URL to the license used for the API.
   , _licenseUrl :: Maybe URL
+
+    -- | Specification Extensions
+  , _licenseExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 instance IsString License where
-  fromString s = License (fromString s) Nothing
+  fromString s = License (fromString s) Nothing mempty
 
 -- | An object representing a Server.
 data Server = Server
@@ -178,6 +194,8 @@ data Server = Server
     -- | A map between a variable name and its value.
     -- The value is used for substitution in the server's URL template.
   , _serverVariables :: InsOrdHashMap Text ServerVariable
+    -- | Specification Extensions
+  , _serverExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 data ServerVariable = ServerVariable
@@ -194,10 +212,13 @@ data ServerVariable = ServerVariable
     -- | An optional description for the server variable.
     -- [CommonMark syntax](https://spec.commonmark.org/) MAY be used for rich text representation.
   , _serverVariableDescription :: Maybe Text
+
+    -- | Specification Extensions
+  , _serverVariableExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 instance IsString Server where
-  fromString s = Server (fromString s) Nothing mempty
+  fromString s = Server (fromString s) Nothing mempty mempty
 
 -- | Holds a set of reusable objects for different aspects of the OAS.
 -- All objects defined within the components object will have no effect on the API
@@ -258,6 +279,9 @@ data PathItem = PathItem
     -- The list MUST NOT include duplicated parameters.
     -- A unique parameter is defined by a combination of a name and location.
   , _pathItemParameters :: [Referenced Param]
+
+    -- | Specification Extensions
+  , _pathItemExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | Describes a single API operation on a path.
@@ -323,6 +347,9 @@ data Operation = Operation
     -- If an alternative server object is specified at the 'PathItem' Object or Root level,
     -- it will be overridden by this value.
   , _operationServers :: [Server]
+
+    -- | Specification Extensions
+  , _operationExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- This instance should be in @http-media@.
@@ -356,6 +383,9 @@ data RequestBody = RequestBody
     -- | Determines if the request body is required in the request.
     -- Defaults to 'False'.
   , _requestBodyRequired :: Maybe Bool
+
+    -- | Specification Extensions
+  , _requestBodyExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | Each Media Type Object provides schema and examples for the media type identified by its key.
@@ -375,6 +405,8 @@ data MediaTypeObject = MediaTypeObject
     -- The encoding object SHALL only apply to 'RequestBody' objects when the media type
     -- is @multipart@ or @application/x-www-form-urlencoded@.
   , _mediaTypeObjectEncoding :: InsOrdHashMap Text Encoding
+    -- | Specification Extensions
+  , _mediaTypeObjectExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | In order to support common ways of serializing simple parameters, a set of style values are defined.
@@ -438,6 +470,8 @@ data Encoding = Encoding
     -- The default value is @false@. This property SHALL be ignored if the request body media type
     -- is not @application/x-www-form-urlencoded@.
   , _encodingAllowReserved :: Maybe Bool
+    -- | Specification Extensions
+  , _encodingExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 newtype MimeList = MimeList { getMimeList :: [MediaType] }
@@ -526,6 +560,8 @@ data Param = Param
     -- TODO
     -- _paramContent :: InsOrdHashMap MediaType MediaTypeObject
     -- should be singleton. mutually exclusive with _paramSchema.
+    -- | Specification Extensions
+  , _paramExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 data Example = Example
@@ -548,6 +584,9 @@ data Example = Example
     -- in JSON or YAML documents. The '_exampleValue' field
     -- and '_exampleExternalValue' field are mutually exclusive.
   , _exampleExternalValue :: Maybe URL
+
+    -- | Specification Extensions
+  , _exampleExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Typeable, Data)
 
 data ExpressionOrValue
@@ -584,6 +623,9 @@ data Link = Link
 
     -- | A server object to be used by the target operation.
   , _linkServer :: Maybe Server
+
+    -- | Specification Extensions
+  , _linkExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Typeable, Data)
 
 -- | Items for @'OpenApiArray'@ schemas.
@@ -673,6 +715,8 @@ data Schema = Schema
   , _schemaUniqueItems :: Maybe Bool
   , _schemaEnum :: Maybe [Value]
   , _schemaMultipleOf :: Maybe Scientific
+    -- | Specification Extensions
+  , _schemaExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | Regex pattern for @string@ type.
@@ -719,6 +763,8 @@ data Xml = Xml
     -- Default value is @False@.
     -- The definition takes effect only when defined alongside type being array (outside the items).
   , _xmlWrapped :: Maybe Bool
+    -- | Specification Extensions
+  , _xmlExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | A container for the expected responses of an operation.
@@ -734,6 +780,8 @@ data Responses = Responses
     -- | Any HTTP status code can be used as the property name (one property per HTTP status code).
     -- Describes the expected response for those HTTP status codes.
   , _responsesResponses :: InsOrdHashMap HttpStatusCode (Referenced Response)
+    -- | Specification Extensions
+  , _responsesExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 type HttpStatusCode = Int
@@ -757,10 +805,12 @@ data Response = Response
     -- The key of the map is a short name for the link, following the naming
     -- constraints of the names for 'Component' Objects.
   , _responseLinks :: InsOrdHashMap Text (Referenced Link)
+    -- | Specification Extensions
+  , _responseExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 instance IsString Response where
-  fromString s = Response (fromString s) mempty mempty mempty
+  fromString s = Response (fromString s) mempty mempty mempty mempty
 
 -- | A map of possible out-of band callbacks related to the parent operation.
 -- Each value in the map is a 'PathItem' Object that describes a set of requests that
@@ -787,6 +837,8 @@ data Header = Header
   , _headerExamples :: InsOrdHashMap Text (Referenced Example)
 
   , _headerSchema :: Maybe (Referenced Schema)
+    -- | Specification Extensions
+  , _headerExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 -- | The location of the API key.
@@ -837,6 +889,8 @@ data OAuth2Flow p = OAuth2Flow
     -- A map between the scope name and a short description for it.
     -- The map MAY be empty.
   , _oAuth2Scopes :: InsOrdHashMap Text Text
+    -- | Specification Extensions
+  , _oAuth2Extensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 data OAuth2Flows = OAuth2Flows
@@ -851,6 +905,8 @@ data OAuth2Flows = OAuth2Flows
 
     -- | Configuration for the OAuth Authorization Code flow
   , _oAuth2FlowsAuthorizationCode :: Maybe (OAuth2Flow OAuth2AuthorizationCodeFlow)
+    -- | Specification Extensions
+  , _oAuth2FlowsExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 type BearerFormat = Text
@@ -908,6 +964,9 @@ data SecurityScheme = SecurityScheme
 
     -- | A short description for security scheme.
   , _securitySchemeDescription :: Maybe Text
+
+   -- | Specification Extensions
+  , _securitySchemeExtensions :: SpecificationExtensions
   } deriving (Eq, Show, Generic, Data, Typeable)
 
 newtype SecurityDefinitions
@@ -936,12 +995,15 @@ data Tag = Tag
 
     -- | Additional external documentation for this tag.
   , _tagExternalDocs :: Maybe ExternalDocs
-  } deriving (Eq, Ord, Show, Generic, Data, Typeable)
+
+    -- | Specification Extensions
+  , _tagExtensions :: SpecificationExtensions
+  } deriving (Eq, Show, Generic, Data, Typeable)
 
 instance Hashable Tag
 
 instance IsString Tag where
-  fromString s = Tag (fromString s) Nothing Nothing
+  fromString s = Tag (fromString s) Nothing Nothing mempty
 
 -- | Allows referencing an external resource for extended documentation.
 data ExternalDocs = ExternalDocs
@@ -951,7 +1013,10 @@ data ExternalDocs = ExternalDocs
 
     -- | The URL for the target documentation.
   , _externalDocsUrl :: URL
-  } deriving (Eq, Ord, Show, Generic, Data, Typeable)
+
+    -- | Specification Extensions
+  , _externalDocsExtensions :: SpecificationExtensions
+  } deriving (Eq, Show, Generic, Data, Typeable)
 
 instance Hashable ExternalDocs
 
@@ -968,7 +1033,8 @@ data Referenced a
 instance IsString a => IsString (Referenced a) where
   fromString = Inline . fromString
 
-newtype URL = URL { getUrl :: Text } deriving (Eq, Ord, Show, Hashable, ToJSON, FromJSON, Data, Typeable)
+newtype URL = URL { getUrl :: Text }
+  deriving (Eq, Ord, Show, Hashable, ToJSON, FromJSON, Data, Typeable, AesonDefaultValue)
 
 data AdditionalProperties
   = AdditionalPropertiesAllowed Bool
@@ -976,6 +1042,9 @@ data AdditionalProperties
   deriving (Eq, Show, Data, Typeable)
 
 newtype OpenApiSpecVersion = OpenApiSpecVersion {getVersion :: Version} deriving (Eq, Show, Generic, Data, Typeable)
+
+newtype SpecificationExtensions = SpecificationExtensions {getSpecificationExtensions :: Definitions Value}
+  deriving (Eq, Show, Hashable, Data, Typeable, Semigroup, Monoid, SwaggerMonoid, AesonDefaultValue)
 
 -------------------------------------------------------------------------------
 -- Generic instances
@@ -1000,18 +1069,25 @@ deriveGeneric ''Example
 deriveGeneric ''Encoding
 deriveGeneric ''Link
 deriveGeneric ''OpenApiSpecVersion
+deriveGeneric ''Info
+deriveGeneric ''Contact
+deriveGeneric ''License
+deriveGeneric ''ServerVariable
+deriveGeneric ''Tag
+deriveGeneric ''Xml
+deriveGeneric ''ExternalDocs
 
 -- =======================================================================
 -- Monoid instances
 -- =======================================================================
 
 instance Semigroup OpenApiSpecVersion where
-  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b 
-  
+  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b
+
 instance Monoid OpenApiSpecVersion where
   mempty = OpenApiSpecVersion (makeVersion [3,0,0])
   mappend = (<>)
-  
+
 instance Semigroup OpenApi where
   (<>) = genericMappend
 instance Monoid OpenApi where
@@ -1108,6 +1184,7 @@ instance Semigroup OAuth2Flows where
     , _oAuth2FlowsPassword = _oAuth2FlowsPassword l <> _oAuth2FlowsPassword r
     , _oAuth2FlowsClientCredentials = _oAuth2FlowsClientCredentials l <> _oAuth2FlowsClientCredentials r
     , _oAuth2FlowsAuthorizationCode = _oAuth2FlowsAuthorizationCode l <> _oAuth2FlowsAuthorizationCode r
+    , _oAuth2FlowsExtensions = _oAuth2FlowsExtensions l <> _oAuth2FlowsExtensions r
     }
 
 instance Monoid OAuth2Flows where
@@ -1115,9 +1192,9 @@ instance Monoid OAuth2Flows where
   mappend = (<>)
 
 instance Semigroup SecurityScheme where
-  SecurityScheme (SecuritySchemeOAuth2 lFlows) lDesc
-    <> SecurityScheme (SecuritySchemeOAuth2 rFlows) rDesc =
-      SecurityScheme (SecuritySchemeOAuth2 $ lFlows <> rFlows) (swaggerMappend lDesc rDesc)
+  SecurityScheme (SecuritySchemeOAuth2 lFlows) lDesc lExt
+    <> SecurityScheme (SecuritySchemeOAuth2 rFlows) rDesc rExt =
+      SecurityScheme (SecuritySchemeOAuth2 $ lFlows <> rFlows) (swaggerMappend lDesc rDesc) (lExt <> rExt)
   l <> _ = l
 
 instance Semigroup SecurityDefinitions where
@@ -1184,32 +1261,11 @@ instance ToJSON OpenApiType where
 instance ToJSON ParamLocation where
   toJSON = genericToJSON (jsonPrefix "Param")
 
-instance ToJSON Info where
-  toJSON = genericToJSON (jsonPrefix "Info")
-
-instance ToJSON Contact where
-  toJSON = genericToJSON (jsonPrefix "Contact")
-
-instance ToJSON License where
-  toJSON = genericToJSON (jsonPrefix "License")
-
-instance ToJSON ServerVariable where
-  toJSON = genericToJSON (jsonPrefix "ServerVariable")
-
 instance ToJSON ApiKeyLocation where
   toJSON = genericToJSON (jsonPrefix "ApiKey")
 
 instance ToJSON ApiKeyParams where
   toJSON = genericToJSON (jsonPrefix "apiKey")
-
-instance ToJSON Tag where
-  toJSON = genericToJSON (jsonPrefix "Tag")
-
-instance ToJSON ExternalDocs where
-  toJSON = genericToJSON (jsonPrefix "ExternalDocs")
-
-instance ToJSON Xml where
-  toJSON = genericToJSON (jsonPrefix "Xml")
 
 instance ToJSON Discriminator where
   toJSON = genericToJSON (jsonPrefix "Discriminator")
@@ -1239,29 +1295,11 @@ instance FromJSON OpenApiType where
 instance FromJSON ParamLocation where
   parseJSON = genericParseJSON (jsonPrefix "Param")
 
-instance FromJSON Info where
-  parseJSON = genericParseJSON (jsonPrefix "Info")
-
-instance FromJSON Contact where
-  parseJSON = genericParseJSON (jsonPrefix "Contact")
-
-instance FromJSON License where
-  parseJSON = genericParseJSON (jsonPrefix "License")
-
-instance FromJSON ServerVariable where
-  parseJSON = genericParseJSON (jsonPrefix "ServerVariable")
-
 instance FromJSON ApiKeyLocation where
   parseJSON = genericParseJSON (jsonPrefix "ApiKey")
 
 instance FromJSON ApiKeyParams where
   parseJSON = genericParseJSON (jsonPrefix "apiKey")
-
-instance FromJSON Tag where
-  parseJSON = genericParseJSON (jsonPrefix "Tag")
-
-instance FromJSON ExternalDocs where
-  parseJSON = genericParseJSON (jsonPrefix "ExternalDocs")
 
 instance FromJSON Discriminator where
   parseJSON = genericParseJSON (jsonPrefix "Discriminator")
@@ -1282,7 +1320,7 @@ instance FromJSON OAuth2AuthorizationCodeFlow where
 -- Manual ToJSON instances
 -- =======================================================================
 
-instance ToJSON OpenApiSpecVersion where 
+instance ToJSON OpenApiSpecVersion where
   toJSON (OpenApiSpecVersion v)= toJSON . showVersion $ v
 
 instance ToJSON MediaType where
@@ -1346,7 +1384,7 @@ instance ToJSON SecurityScheme where
 
 instance ToJSON Schema where
   toJSON = sopSwaggerGenericToJSONWithOpts $
-      mkSwaggerAesonOptions "schema" & saoSubObject ?~ "items"
+      mkSwaggerAesonOptions "schema" & saoSubObject .~ ["items", "extensions"]
 
 instance ToJSON Header where
   toJSON = sopSwaggerGenericToJSON
@@ -1418,6 +1456,34 @@ instance ToJSON Link where
   toJSON = sopSwaggerGenericToJSON
   toEncoding = sopSwaggerGenericToEncoding
 
+instance ToJSON ExternalDocs where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON Info where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON License where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON Contact where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON ServerVariable where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON Xml where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
+instance ToJSON Tag where
+  toJSON = sopSwaggerGenericToJSON
+  toEncoding = sopSwaggerGenericToEncoding
+
 instance ToJSON SecurityDefinitions where
   toJSON (SecurityDefinitions sd) = toJSON sd
 
@@ -1448,6 +1514,11 @@ instance ToJSON ExpressionOrValue where
 instance ToJSON Callback where
   toJSON (Callback ps) = toJSON ps
 
+instance ToJSON SpecificationExtensions where
+  toJSON = toJSON . addExtPrefix . getSpecificationExtensions
+    where
+      addExtPrefix = InsOrdHashMap.mapKeys ("x-" <>)
+
 -- =======================================================================
 -- Manual FromJSON instances
 -- =======================================================================
@@ -1456,15 +1527,15 @@ instance FromJSON OpenApiSpecVersion where
   parseJSON = withText "OpenApiSpecVersion" $ \str ->
             let validatedVersion :: Either String Version
                 validatedVersion = do
-                  parsedVersion <- readVersion str 
+                  parsedVersion <- readVersion str
                   unless ((parsedVersion >= lowerOpenApiSpecVersion) && (parsedVersion <= upperOpenApiSpecVersion)) $
                      Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=" <> showVersion lowerOpenApiSpecVersion <> " && <=" <> showVersion upperOpenApiSpecVersion)
                   return parsedVersion
-             in 
+             in
               either fail (return . OpenApiSpecVersion) validatedVersion
     where
     readVersion :: Text -> Either String Version
-    readVersion v = case readP_to_S parseVersion (Text.unpack v) of 
+    readVersion v = case readP_to_S parseVersion (Text.unpack v) of
       [] -> Left $ "Failed to parse as a version string " <> Text.unpack v
       solutions -> Right (fst . last $ solutions)
 
@@ -1536,10 +1607,17 @@ instance FromJSON Param where
   parseJSON = sopSwaggerGenericParseJSON
 
 instance FromJSON Responses where
-  parseJSON (Object o) = Responses
-    <$> o .:? "default"
-    <*> parseJSON (Object (deleteKey "default" o))
-  parseJSON _ = empty
+  parseJSON =
+    withObject "Responses" $ \o ->
+      let (extensions, rest) = partitionObject isExt $ deleteKey "default" o
+      in Responses
+        <$> o .:? "default"
+        <*> parseJSON (Object rest)
+        <*> parseJSON (Object extensions)
+    where
+      isExt = Text.isPrefixOf "x-" . keyToText
+      partitionObject p =
+        bimap objectFromList objectFromList . List.partition (isExt . fst) . objectToList
 
 instance FromJSON Example where
   parseJSON = sopSwaggerGenericParseJSON
@@ -1568,6 +1646,27 @@ instance FromJSON Encoding where
 instance FromJSON Link where
   parseJSON = sopSwaggerGenericParseJSON
 
+instance FromJSON ExternalDocs where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON Info where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON License where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON Contact where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON ServerVariable where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON Xml where
+  parseJSON = sopSwaggerGenericParseJSON
+
+instance FromJSON Tag where
+  parseJSON = sopSwaggerGenericParseJSON
+
 instance FromJSON Reference where
   parseJSON (Object o) = Reference <$> o .: "$ref"
   parseJSON _ = empty
@@ -1594,9 +1693,6 @@ instance FromJSON (Referenced Header)   where parseJSON = referencedParseJSON "#
 instance FromJSON (Referenced Link)     where parseJSON = referencedParseJSON "#/components/links/"
 instance FromJSON (Referenced Callback) where parseJSON = referencedParseJSON "#/components/callbacks/"
 
-instance FromJSON Xml where
-  parseJSON = genericParseJSON (jsonPrefix "xml")
-
 instance FromJSON AdditionalProperties where
   parseJSON (Bool b) = pure $ AdditionalPropertiesAllowed b
   parseJSON js = AdditionalPropertiesSchema <$> parseJSON js
@@ -1609,47 +1705,67 @@ instance FromJSON ExpressionOrValue where
 instance FromJSON Callback where
   parseJSON = fmap Callback . parseJSON
 
+instance FromJSON SpecificationExtensions where
+  parseJSON =
+    withObject "SpecificationExtensions" $
+      pure . SpecificationExtensions . InsOrdHashMap.fromList . filterExtFields . objectToList
+    where
+      filterExtFields = mapMaybe (\(k, v) -> (, v) <$> Text.stripPrefix "x-" (keyToText k))
+
 instance HasSwaggerAesonOptions Server where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "server"
 instance HasSwaggerAesonOptions Components where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "components"
 instance HasSwaggerAesonOptions Header where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "header"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "header" & saoSubObject .~ ["extensions"]
 instance AesonDefaultValue p => HasSwaggerAesonOptions (OAuth2Flow p) where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2" & saoSubObject ?~ "params"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2" & saoSubObject .~ ["params", "extensions"]
 instance HasSwaggerAesonOptions OAuth2Flows where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2Flows"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "oauth2Flows" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Operation where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "operation"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "operation" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Param where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "param"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "param" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions PathItem where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "pathItem"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "pathItem" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Response where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "response"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "response" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions RequestBody where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "requestBody"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "requestBody" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions MediaTypeObject where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "mediaTypeObject"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "mediaTypeObject" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Responses where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "responses" & saoSubObject ?~ "responses"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "responses" & saoSubObject .~ ["responses", "extensions"]
 instance HasSwaggerAesonOptions SecurityScheme where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject ?~ "type"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "securityScheme" & saoSubObject .~ ["type", "extensions"]
 instance HasSwaggerAesonOptions Schema where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject ?~ "paramSchema"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "schema" & saoSubObject .~ ["paramSchema", "extensions"]
 instance HasSwaggerAesonOptions OpenApiSpecVersion where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "openapi"
 instance HasSwaggerAesonOptions OpenApi where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Example where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "example"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "example" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Encoding where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "encoding"
-
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "encoding" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions Info where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "info" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions Contact where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "contact" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions License where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "license" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions ServerVariable where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "serverVariable" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions Tag where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "tag" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions Xml where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "xml" & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions ExternalDocs where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "externalDocs" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Link where
-  swaggerAesonOptions _ = mkSwaggerAesonOptions "link"
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "link" & saoSubObject .~ ["extensions"]
 
-instance AesonDefaultValue Version where 
+instance AesonDefaultValue Version where
   defaultValue = Just (makeVersion [3,0,0])
 instance AesonDefaultValue OpenApiSpecVersion
 instance AesonDefaultValue Server
