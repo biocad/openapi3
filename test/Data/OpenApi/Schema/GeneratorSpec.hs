@@ -91,6 +91,19 @@ spec = do
     prop "MissingProperty" $ shouldNotValidate (Proxy :: Proxy MissingProperty)
     prop "WrongPropType" $ shouldNotValidate (Proxy :: Proxy WrongPropType)
 
+  describe "schemaGenWithFormats" $ do
+    it "supports custom string format generators" $ do
+      let sch = mempty
+            & type_  ?~ OpenApiString
+            & format ?~ "custom"
+
+      let formatGen fmt = case fmt of
+            "custom" -> Just (pure "custom")
+            _        -> Nothing
+
+      value <- generate $ schemaGenWithFormats formatGen mempty sch
+      value `shouldBe` String "custom"
+
 -- =============================
 -- Data types and bunk instances
 -- =============================
