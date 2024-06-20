@@ -248,7 +248,7 @@ declareSchemaRef proxy = do
       -- this schema this time and thus simply return the reference.
       known <- looks (InsOrdHashMap.member name)
       when (not known) $ do
-        declare [(name, schema)]
+        declare [(name, Inline schema)]
         void $ declareNamedSchema proxy
       return $ Ref (Reference name)
     _ -> Inline <$> declareSchema proxy
@@ -266,7 +266,7 @@ inlineSchemasWhen p defs = template %~ deref
     deref r@(Ref (Reference name))
       | p name =
           case InsOrdHashMap.lookup name defs of
-            Just schema -> Inline (inlineSchemasWhen p defs schema)
+            Just schema -> inlineSchemasWhen p defs schema
             Nothing -> r
       | otherwise = r
     deref (Inline schema) = Inline (inlineSchemasWhen p defs schema)
@@ -315,10 +315,11 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
   where
     nonRecursive name =
       case InsOrdHashMap.lookup name defs of
-        Just schema -> name `notElem` execDeclare (usedNames schema) mempty
+        Just schema -> name `notElem` execDeclare (schemaRefNames schema) mempty
         Nothing     -> False
 
-    usedNames schema = traverse_ schemaRefNames (schema ^.. template)
+    schemaNames :: Schema -> Declare [T.Text] ()
+    schemaNames schema = traverse_ schemaRefNames (schema ^.. template)
 
     schemaRefNames :: Referenced Schema -> Declare [T.Text] ()
     schemaRefNames ref = case ref of
@@ -326,8 +327,8 @@ inlineNonRecursiveSchemas defs = inlineSchemasWhen nonRecursive defs
         seen <- looks (name `elem`)
         when (not seen) $ do
           declare [name]
-          traverse_ usedNames (InsOrdHashMap.lookup name defs)
-      Inline subschema -> usedNames subschema
+          traverse_ schemaRefNames (InsOrdHashMap.lookup name defs)
+      Inline s -> schemaNames s
 
 -- | Make an unrestrictive sketch of a @'Schema'@ based on a @'ToJSON'@ instance.
 -- Produced schema can be used for further refinement.
@@ -978,7 +979,7 @@ gdeclareSchemaRef opts proxy = do
       -- this schema this time and thus simply return the reference.
       known <- looks (InsOrdHashMap.member name)
       when (not known) $ do
-        declare [(name, schema)]
+        declare [(name, Inline schema)]
         void $ gdeclareNamedSchema opts proxy mempty
       return $ Ref (Reference name)
     _ -> Inline <$> gdeclareSchema opts proxy

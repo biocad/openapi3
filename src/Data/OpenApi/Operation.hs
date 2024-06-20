@@ -300,7 +300,8 @@ setResponseForWith ops f code dres swag = swag
     (defs, new) = runDeclare dres mempty
 
     combine (Just (Ref (Reference n))) = case swag ^. components.responses.at n of
-      Just old -> f old new
+      Just (Inline old) -> f old new
+      Just (Ref _) -> new -- we don't chase references any further, to avoid a loop in case of recursion
       Nothing  -> new -- response name can't be dereferenced, replacing with new response
     combine (Just (Inline old)) = f old new
     combine Nothing = new

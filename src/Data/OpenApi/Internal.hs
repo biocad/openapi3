@@ -66,7 +66,7 @@ import Text.ParserCombinators.ReadP (readP_to_S)
 -- >>> import Data.OpenApi.Internal.Utils
 
 -- | A list of definitions that can be used in references.
-type Definitions = InsOrdHashMap Text
+type Definitions a = InsOrdHashMap Text (Referenced a)
 
 -- | This is the root document object for the API specification.
 data OpenApi = OpenApi
@@ -1006,12 +1006,12 @@ deriveGeneric ''OpenApiSpecVersion
 -- =======================================================================
 
 instance Semigroup OpenApiSpecVersion where
-  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b 
-  
+  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b
+
 instance Monoid OpenApiSpecVersion where
   mempty = OpenApiSpecVersion (makeVersion [3,0,0])
   mappend = (<>)
-  
+
 instance Semigroup OpenApi where
   (<>) = genericMappend
 instance Monoid OpenApi where
@@ -1122,7 +1122,13 @@ instance Semigroup SecurityScheme where
 
 instance Semigroup SecurityDefinitions where
   (SecurityDefinitions sd1) <> (SecurityDefinitions sd2) =
-     SecurityDefinitions $ InsOrdHashMap.unionWith (<>) sd1 sd2
+    SecurityDefinitions $ InsOrdHashMap.unionWith mergeRefSecuritySchemes sd1 sd2
+    where
+      -- If there's a conflict between two inline security schemes, we merge them
+      -- recursively, but otherwise we behave as the 'Semigroup' instance on
+      -- 'InsOrdHashMap' would, preferring the left value.
+      mergeRefSecuritySchemes (Inline s1) (Inline s2) = Inline (s1 <> s2)
+      mergeRefSecuritySchemes l _ = l
 
 instance Monoid SecurityDefinitions where
   mempty = SecurityDefinitions InsOrdHashMap.empty
@@ -1282,7 +1288,7 @@ instance FromJSON OAuth2AuthorizationCodeFlow where
 -- Manual ToJSON instances
 -- =======================================================================
 
-instance ToJSON OpenApiSpecVersion where 
+instance ToJSON OpenApiSpecVersion where
   toJSON (OpenApiSpecVersion v)= toJSON . showVersion $ v
 
 instance ToJSON MediaType where
@@ -1436,6 +1442,7 @@ instance ToJSON (Referenced Example)  where toJSON = referencedToJSON "#/compone
 instance ToJSON (Referenced Header)   where toJSON = referencedToJSON "#/components/headers/"
 instance ToJSON (Referenced Link)     where toJSON = referencedToJSON "#/components/links/"
 instance ToJSON (Referenced Callback) where toJSON = referencedToJSON "#/components/callbacks/"
+instance ToJSON (Referenced SecurityScheme) where toJSON = referencedToJSON "#/components/securitySchemes/"
 
 instance ToJSON AdditionalProperties where
   toJSON (AdditionalPropertiesAllowed b) = toJSON b
@@ -1456,15 +1463,15 @@ instance FromJSON OpenApiSpecVersion where
   parseJSON = withText "OpenApiSpecVersion" $ \str ->
             let validatedVersion :: Either String Version
                 validatedVersion = do
-                  parsedVersion <- readVersion str 
+                  parsedVersion <- readVersion str
                   unless ((parsedVersion >= lowerOpenApiSpecVersion) && (parsedVersion <= upperOpenApiSpecVersion)) $
                      Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=" <> showVersion lowerOpenApiSpecVersion <> " && <=" <> showVersion upperOpenApiSpecVersion)
                   return parsedVersion
-             in 
+             in
               either fail (return . OpenApiSpecVersion) validatedVersion
     where
     readVersion :: Text -> Either String Version
-    readVersion v = case readP_to_S parseVersion (Text.unpack v) of 
+    readVersion v = case readP_to_S parseVersion (Text.unpack v) of
       [] -> Left $ "Failed to parse as a version string " <> Text.unpack v
       solutions -> Right (fst . last $ solutions)
 
@@ -1593,6 +1600,7 @@ instance FromJSON (Referenced Example)  where parseJSON = referencedParseJSON "#
 instance FromJSON (Referenced Header)   where parseJSON = referencedParseJSON "#/components/headers/"
 instance FromJSON (Referenced Link)     where parseJSON = referencedParseJSON "#/components/links/"
 instance FromJSON (Referenced Callback) where parseJSON = referencedParseJSON "#/components/callbacks/"
+instance FromJSON (Referenced SecurityScheme) where parseJSON = referencedParseJSON "#/components/securitySchemes/"
 
 instance FromJSON Xml where
   parseJSON = genericParseJSON (jsonPrefix "xml")
@@ -1649,7 +1657,7 @@ instance HasSwaggerAesonOptions Encoding where
 instance HasSwaggerAesonOptions Link where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "link"
 
-instance AesonDefaultValue Version where 
+instance AesonDefaultValue Version where
   defaultValue = Just (makeVersion [3,0,0])
 instance AesonDefaultValue OpenApiSpecVersion
 instance AesonDefaultValue Server

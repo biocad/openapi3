@@ -101,7 +101,10 @@ schemaGen defns schema =
 
 dereference :: Definitions a -> Referenced a -> a
 dereference _ (Inline a)               = a
-dereference defs (Ref (Reference ref)) = fromJust $ M.lookup ref defs
+dereference defs (Ref (Reference ref)) = fromInline $ fromJust $ M.lookup ref defs
+  where
+    fromInline (Inline s) = s
+    fromInline (Ref _) = error "reference to another reference is unsupported"
 
 genValue :: (ToSchema a) => Proxy a -> Gen Value
 genValue p =
