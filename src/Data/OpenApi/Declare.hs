@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 -- |
 -- Module:      Data.OpenApi.Declare
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
@@ -27,7 +28,10 @@ import Control.Monad.Trans.RWS.Lazy as Lazy
 import Control.Monad.Trans.RWS.Strict as Strict
 import Control.Monad.Trans.Writer.Lazy as Lazy
 import Control.Monad.Trans.Writer.Strict as Strict
+import Control.Lens.Lens (Lens')
 import Data.Functor.Identity
+import Data.Functor.Compose
+import Data.Tuple (swap)
 
 -- | A declare monad transformer parametrized by:
 --
@@ -113,6 +117,14 @@ execDeclareT (DeclareT f) d = fst <$> f d
 -- starting with empty output history.
 undeclareT :: (Monad m, Monoid d) => DeclareT d m a -> m a
 undeclareT = flip evalDeclareT mempty
+
+-- | Lift a declaration-producing computation for a subpart into a
+-- declaration-producing computation for the whole.
+hoistDeclareT :: Functor m => Lens' d d' -> DeclareT d' m a -> DeclareT d m a
+hoistDeclareT l = DeclareT . unconvert . l . convert . runDeclareT
+  where
+  convert f = Compose . fmap swap . f
+  unconvert f = fmap swap . getCompose . f
 
 -- | A declare monad parametrized by @d@ — the output to accumulate (declarations).
 --
