@@ -630,7 +630,7 @@ instance ToSchema a => ToSchema (Maybe a) where
           { _schemaAnyOf = Just [Inline aSchema, Inline mempty { _schemaType = Just OpenApiNull }]
           }
 
-    return $ NamedSchema mName aSchemaWithNull
+    pure $ NamedSchema mName aSchemaWithNull
 
 instance (ToSchema a, ToSchema b) => ToSchema (Either a b) where
   -- To match Aeson instance
