@@ -627,7 +627,7 @@ instance ToSchema a => ToSchema (Maybe a) where
     NamedSchema mName aSchema <- declareNamedSchema (Proxy :: Proxy a)
     
     let aSchemaWithNull = mempty
-          { _schemaOneOf = Just [Inline aSchema, Inline mempty { _schemaType = Just OpenApiNull }]
+          { _schemaAnyOf = Just [Inline aSchema, Inline mempty { _schemaType = Just OpenApiNull }]
           }
 
     return $ NamedSchema mName aSchemaWithNull
