@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -180,9 +181,11 @@ instance
 
 type instance Index Responses = HttpStatusCode
 type instance Index Operation = HttpStatusCode
+type instance Index SpecificationExtensions = Text
 
 type instance IxValue Responses = Referenced Response
 type instance IxValue Operation = Referenced Response
+type instance IxValue SpecificationExtensions = Value
 
 instance Ixed Responses where
   ix n = #responses % ix n
@@ -196,6 +199,13 @@ instance Ixed Operation where
   {-# INLINE ix #-}
 instance At   Operation where
   at n = #responses % at n
+  {-# INLINE at #-}
+
+instance Ixed SpecificationExtensions where
+  ix n = coercedTo @(Definitions Value) % ix n
+  {-# INLINE ix #-}
+instance At   SpecificationExtensions where
+  at n = coercedTo @(Definitions Value) % at n
   {-# INLINE at #-}
 
 -- #type

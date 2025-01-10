@@ -20,6 +20,9 @@ deleteKey = KeyMap.delete
 objectToList :: KeyMap.KeyMap v -> [(Key, v)]
 objectToList = KeyMap.toList
 
+objectFromList :: [(Key, v)] -> KeyMap.KeyMap v
+objectFromList = KeyMap.fromList
+
 objectKeys :: KeyMap.KeyMap v -> [T.Text]
 objectKeys = map Key.toText . KeyMap.keys
 
@@ -49,6 +52,9 @@ deleteKey = HM.delete
 
 objectToList :: HM.HashMap T.Text v -> [(T.Text, v)]
 objectToList = HM.toList
+
+objectFromList :: [(T.Text, v)] -> HM.HashMap T.Text v
+objectFromList = HM.fromList
 
 objectKeys :: HM.HashMap T.Text v -> [T.Text]
 objectKeys = HM.keys
