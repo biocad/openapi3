@@ -636,6 +636,7 @@ instance ToSchema () where
 instance ToSchema UUID.UUID where
   declareNamedSchema p = pure $ named "UUID" $ paramSchemaToSchema p
     & example ?~ toJSON (UUID.toText UUID.nil)
+    & format ?~ "uuid"
 
 instance (ToSchema a, ToSchema b) => ToSchema (a, b) where
   declareNamedSchema = fmap unname . genericDeclareNamedSchema defaultSchemaOptions
