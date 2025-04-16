@@ -59,6 +59,9 @@ import Data.OpenApi.Internal.Schema
 import Data.OpenApi.Internal.Utils
 import Data.OpenApi.Lens
 
+-- $setup
+-- >>> import Data.OpenApi.Internal.Schema.Validation
+
 -- | Validate @'ToJSON'@ instance matches @'ToSchema'@ for a given value.
 -- This can be used with QuickCheck to ensure those instances are coherent:
 --

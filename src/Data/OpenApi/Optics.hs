@@ -18,14 +18,15 @@
 -- >>> import Optics.Core
 -- >>> :set -XOverloadedLabels
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSL
+-- >>> import qualified Data.HashMap.Strict.InsOrd as IOHM
 --
 -- Example from the "Data.OpenApi" module using @optics@:
 --
 -- >>> :{
 -- BSL.putStrLn $ encodePretty $ (mempty :: OpenApi)
---   & #components % #schemas .~ [ ("User", mempty & #type ?~ OpenApiString) ]
+--   & #components % #schemas .~ IOHM.fromList [ ("User", mempty & #type ?~ OpenApiString) ]
 --   & #paths .~
---     [ ("/user", mempty & #get ?~ (mempty
+--     IOHM.fromList [ ("/user", mempty & #get ?~ (mempty
 --         & at 200 ?~ ("OK" & #_Inline % #content % at "application/json" ?~ (mempty & #schema ?~ Ref (Reference "User")))
 --         & at 404 ?~ "User info not found")) ]
 -- :}

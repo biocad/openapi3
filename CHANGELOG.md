@@ -1,6 +1,19 @@
 Unreleased
 ----------
 
+3.2.4
+-----
+- Give `title` to sub schemas of sum types [#88](https://github.com/biocad/openapi3/pull/88).
+
+3.2.3
+-----
+
+- Fix generation of `allOf` / `oneOf` schemas when variants are not objects [#49](https://github.com/biocad/openapi3/pull/49).
+- Support parsing OpenAPI 3.0.1, 3.0.2, 3.0.3 versions [#68](https://github.com/biocad/openapi3/pull/68).
+- Support GHC-9.4 [#61](https://github.com/biocad/openapi3/pull/61).
+- Output `scopes` in schema even if empty [#65](https://github.com/biocad/openapi3/pull/65).
+- Fix `mtl-2.3` compatibility [#60](https://github.com/biocad/openapi3/pull/60).
+
 3.2.2
 -----
 

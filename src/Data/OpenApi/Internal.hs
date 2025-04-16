@@ -45,7 +45,6 @@ import           Data.Text.Encoding    (encodeUtf8)
 import           GHC.Generics          (Generic)
 import           Network.HTTP.Media    (MediaType, mainType, parameters, parseAccept, subType, (//),
                                         (/:))
-import           Network.Socket        (HostName, PortNumber)
 import           Text.Read             (readMaybe)
 
 import           Data.HashMap.Strict.InsOrd (InsOrdHashMap)
@@ -60,6 +59,9 @@ import Data.OpenApi.Internal.Utils
 import Data.OpenApi.Internal.AesonUtils (sopSwaggerGenericToEncoding
                                         ,sopSwaggerGenericToEncodingWithOpts)
 import Generics.SOP.TH                  (deriveGeneric)
+import Data.Version
+import Control.Monad (unless)
+import Text.ParserCombinators.ReadP (readP_to_S)
 
 -- $setup
 -- >>> :seti -XDataKinds
@@ -106,7 +108,19 @@ data OpenApi = OpenApi
 
     -- | Specification Extensions
   , _openApiExtensions :: SpecificationExtensions
+  
+  , -- | The spec of OpenApi this spec adheres to. Must be between 'lowerOpenApiSpecVersion' and 'upperOpenApiSpecVersion'
+    _openApiOpenapi :: OpenApiSpecVersion
+
   } deriving (Eq, Show, Generic, Data, Typeable)
+
+-- | This is the lower version of the OpenApi Spec this library can parse or produce
+lowerOpenApiSpecVersion :: Version
+lowerOpenApiSpecVersion = makeVersion [3, 0, 0]
+
+-- | This is the upper version of the OpenApi Spec this library can parse or produce
+upperOpenApiSpecVersion :: Version
+upperOpenApiSpecVersion = makeVersion [3, 0, 3]
 
 -- | The object provides metadata about the API.
 -- The metadata MAY be used by the clients if needed,
@@ -1035,6 +1049,7 @@ data AdditionalProperties
 newtype SpecificationExtensions = SpecificationExtensions { getSpecificationExtensions :: Definitions Value}
   deriving (Eq, Show, Hashable, Data, Typeable, Semigroup, Monoid, SwaggerMonoid, AesonDefaultValue)
 
+newtype OpenApiSpecVersion = OpenApiSpecVersion {getVersion :: Version} deriving (Eq, Show, Generic, Data, Typeable)
 
 -------------------------------------------------------------------------------
 -- Generic instances
@@ -1065,11 +1080,19 @@ deriveGeneric ''ServerVariable
 deriveGeneric ''Tag
 deriveGeneric ''Xml
 deriveGeneric ''ExternalDocs
+deriveGeneric ''OpenApiSpecVersion
 
 -- =======================================================================
 -- Monoid instances
 -- =======================================================================
 
+instance Semigroup OpenApiSpecVersion where
+  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b 
+  
+instance Monoid OpenApiSpecVersion where
+  mempty = OpenApiSpecVersion (makeVersion [3,0,0])
+  mappend = (<>)
+  
 instance Semigroup OpenApi where
   (<>) = genericMappend
 instance Monoid OpenApi where
@@ -1208,6 +1231,7 @@ instance SwaggerMonoid ExternalDocs
 instance SwaggerMonoid Operation
 instance (Eq a, Hashable a) => SwaggerMonoid (InsOrdHashSet a)
 instance SwaggerMonoid SecurityDefinitions
+instance SwaggerMonoid OpenApiSpecVersion
 
 instance SwaggerMonoid MimeList
 deriving instance SwaggerMonoid URL
@@ -1301,6 +1325,9 @@ instance FromJSON OAuth2AuthorizationCodeFlow where
 -- Manual ToJSON instances
 -- =======================================================================
 
+instance ToJSON OpenApiSpecVersion where 
+  toJSON (OpenApiSpecVersion v)= toJSON . showVersion $ v
+
 instance ToJSON MediaType where
   toJSON = toJSON . show
   toEncoding = toEncoding . show
@@ -1309,7 +1336,10 @@ instance ToJSONKey MediaType where
   toJSONKey = JSON.toJSONKeyText (Text.pack . show)
 
 instance (Eq p, ToJSON p, AesonDefaultValue p) => ToJSON (OAuth2Flow p) where
-  toJSON = sopSwaggerGenericToJSON
+  toJSON a = sopSwaggerGenericToJSON a &
+    if InsOrdHashMap.null (_oAuth2Scopes a)
+    then (<+> object ["scopes" .= object []])
+    else id
   toEncoding = sopSwaggerGenericToEncoding
 
 instance ToJSON OAuth2Flows where
@@ -1524,6 +1554,22 @@ instance ToJSON SpecificationExtensions where
 -- Manual FromJSON instances
 -- =======================================================================
 
+instance FromJSON OpenApiSpecVersion where
+  parseJSON = withText "OpenApiSpecVersion" $ \str ->
+            let validatedVersion :: Either String Version
+                validatedVersion = do
+                  parsedVersion <- readVersion str 
+                  unless ((parsedVersion >= lowerOpenApiSpecVersion) && (parsedVersion <= upperOpenApiSpecVersion)) $
+                     Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=" <> showVersion lowerOpenApiSpecVersion <> " && <=" <> showVersion upperOpenApiSpecVersion)
+                  return parsedVersion
+             in 
+              either fail (return . OpenApiSpecVersion) validatedVersion
+    where
+    readVersion :: Text -> Either String Version
+    readVersion v = case readP_to_S parseVersion (Text.unpack v) of 
+      [] -> Left $ "Failed to parse as a version string " <> Text.unpack v
+      solutions -> Right (fst . last $ solutions)
+
 instance FromJSON MediaType where
   parseJSON = withText "MediaType" $ \str ->
     maybe (fail $ "Invalid media type literal " <> Text.unpack str) pure $ parseAccept $ encodeUtf8 str
@@ -1726,6 +1772,8 @@ instance HasSwaggerAesonOptions Schema where
 instance HasSwaggerAesonOptions OpenApi where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "swagger" & saoAdditionalPairs .~ [("openapi", "3.0.0")]
                                                           & saoSubObject .~ ["extensions"]
+instance HasSwaggerAesonOptions OpenApiSpecVersion where
+  swaggerAesonOptions _ = mkSwaggerAesonOptions "openapi"
 instance HasSwaggerAesonOptions Example where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "example" & saoSubObject .~ ["extensions"]
 instance HasSwaggerAesonOptions Encoding where
@@ -1755,6 +1803,9 @@ instance HasSwaggerAesonOptions Xml where
 instance HasSwaggerAesonOptions ExternalDocs where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "externalDocs" & saoSubObject .~ ["extensions"]
 
+instance AesonDefaultValue Version where 
+  defaultValue = Just (makeVersion [3,0,0])
+instance AesonDefaultValue OpenApiSpecVersion
 instance AesonDefaultValue Server
 instance AesonDefaultValue Components
 instance AesonDefaultValue OAuth2ImplicitFlow
