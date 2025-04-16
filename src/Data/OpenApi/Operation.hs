@@ -143,6 +143,7 @@ allOperations = paths.traverse.template
 --         }
 --     }
 -- }
+
 operationsOf :: OpenApi -> Traversal' OpenApi Operation
 operationsOf sub = paths.itraversed.withIndex.subops
   where
