@@ -205,7 +205,14 @@ personSchemaJSON = [aesonQQ|
     {
       "name":   { "type": "string"  },
       "phone":  { "type": "integer" },
-      "email":  { "type": "string"  }
+      "email":
+        {
+          "anyOf" :
+            [
+              { "type" : "null" },
+              { "type": "string" }
+            ]
+        }
     },
   "required": ["name", "phone"]
 }
@@ -867,7 +874,14 @@ singleMaybeFieldSchemaJSON = [aesonQQ|
   "type": "object",
   "properties":
     {
-      "singleMaybeField": { "type": "string" }
+      "singleMaybeField":
+        {
+          "anyOf" :
+            [
+              { "type" : "null" },
+              { "type": "string" }
+            ]
+        }
     }
 }
 |]

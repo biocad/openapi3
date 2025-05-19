@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE PackageImports      #-}
+{-# LANGUAGE QuasiQuotes         #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -8,11 +9,13 @@ module Data.OpenApi.Schema.ValidationSpec where
 
 import           Control.Applicative
 import           Control.Lens                        ((&), (.~), (?~))
+import           Control.Monad
 import           Data.Aeson
 #if MIN_VERSION_aeson(2,0,0)
 import qualified Data.Aeson.Key as Key
 import qualified Data.Aeson.KeyMap as KeyMap
 #endif
+import           Data.Aeson.QQ.Simple
 import           Data.Aeson.Types
 import           Data.Hashable                       (Hashable)
 import           Data.HashMap.Strict                 (HashMap)
@@ -45,6 +48,13 @@ import           Test.QuickCheck.Instances           ()
 shouldValidate :: (ToJSON a, ToSchema a) => Proxy a -> a -> Bool
 shouldValidate _ x = validateToJSON x == []
 
+shouldValidateValue :: (ToSchema a) => Proxy a -> Value -> Expectation
+shouldValidateValue px val = do
+  let (defs, sch) = runDeclare (declareSchema px) mempty
+  case validateJSON defs sch val of
+    [] -> pure ()
+    errors -> expectationFailure $ unlines errors
+
 shouldNotValidate :: forall a. ToSchema a => (a -> Value) -> a -> Bool
 shouldNotValidate f = not . null . validateJSON defs sch . f
   where
@@ -75,7 +85,8 @@ spec = do
     prop "T.Text" $ shouldValidate (Proxy :: Proxy T.Text)
     prop "TL.Text" $ shouldValidate (Proxy :: Proxy TL.Text)
     prop "[String]" $ shouldValidate (Proxy :: Proxy [String])
-    -- prop "(Maybe [Int])" $ shouldValidate (Proxy :: Proxy (Maybe [Int]))
+    prop "(Maybe [Int])" $ shouldValidate (Proxy :: Proxy (Maybe [Int]))
+    prop "(Maybe (Maybe Int))" $ shouldValidate (Proxy :: Proxy (Maybe (Maybe Int)))
     prop "(IntMap String)" $ shouldValidate (Proxy :: Proxy (IntMap String))
     prop "(Set Bool)" $ shouldValidate (Proxy :: Proxy (Set Bool))
     prop "(NonEmpty Bool)" $ shouldValidate (Proxy :: Proxy (NonEmpty Bool))
@@ -92,7 +103,11 @@ spec = do
     prop "(Int, String, Double)" $ shouldValidate (Proxy :: Proxy (Int, String, Double))
     prop "(Int, String, Double, [Int])" $ shouldValidate (Proxy :: Proxy (Int, String, Double, [Int]))
     prop "(Int, String, Double, [Int], Int)" $ shouldValidate (Proxy :: Proxy (Int, String, Double, [Int], Int))
-    prop "Person" $ shouldValidate (Proxy :: Proxy Person)
+    describe "Person: record with optional field" $ do
+      let px = Proxy :: Proxy Person
+      it "optional field is Just" $ shouldValidateValue px personJustEmailField
+      it "optional field is Null" $ shouldValidateValue px personNullEmailField
+      it "optional field is omitted" $ shouldValidateValue px personOmittedEmailField
     prop "Color" $ shouldValidate (Proxy :: Proxy Color)
     prop "Paint" $ shouldValidate (Proxy :: Proxy Paint)
     prop "MyRoseTree" $ shouldValidate (Proxy :: Proxy MyRoseTree)
@@ -127,6 +142,32 @@ instance ToSchema Person
 
 instance Arbitrary Person where
   arbitrary = Person <$> arbitrary <*> arbitrary <*> arbitrary
+
+personJustEmailField :: Value
+personJustEmailField = [aesonQQ|
+  {
+    "name" : "foo",
+    "phone" : 1,
+    "email" : "foo@email.com"
+  }
+|]
+
+personNullEmailField :: Value
+personNullEmailField = [aesonQQ|
+  {
+    "name" : "foo",
+    "phone" : 1,
+    "email" : null
+  }
+|]
+
+personOmittedEmailField :: Value
+personOmittedEmailField = [aesonQQ|
+  {
+    "name" : "foo",
+    "phone" : 1
+  }
+|]
 
 invalidPersonToJSON :: Person -> Value
 invalidPersonToJSON Person{..} = object

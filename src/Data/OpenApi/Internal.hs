@@ -14,6 +14,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Data.OpenApi.Internal where
 
 import Prelude ()
@@ -335,7 +337,9 @@ instance Data MediaType where
 
   dataTypeOf _ = mediaTypeData
 
+mediaTypeConstr :: Constr
 mediaTypeConstr = mkConstr mediaTypeData "MediaType" [] Prefix
+mediaTypeData :: DataType
 mediaTypeData = mkDataType "MediaType" [mediaTypeConstr]
 
 instance Hashable MediaType where
@@ -1006,12 +1010,12 @@ deriveGeneric ''OpenApiSpecVersion
 -- =======================================================================
 
 instance Semigroup OpenApiSpecVersion where
-  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b 
-  
+  (<>) (OpenApiSpecVersion a) (OpenApiSpecVersion b) = OpenApiSpecVersion $ max a b
+
 instance Monoid OpenApiSpecVersion where
   mempty = OpenApiSpecVersion (makeVersion [3,0,0])
   mappend = (<>)
-  
+
 instance Semigroup OpenApi where
   (<>) = genericMappend
 instance Monoid OpenApi where
@@ -1282,7 +1286,7 @@ instance FromJSON OAuth2AuthorizationCodeFlow where
 -- Manual ToJSON instances
 -- =======================================================================
 
-instance ToJSON OpenApiSpecVersion where 
+instance ToJSON OpenApiSpecVersion where
   toJSON (OpenApiSpecVersion v)= toJSON . showVersion $ v
 
 instance ToJSON MediaType where
@@ -1456,15 +1460,15 @@ instance FromJSON OpenApiSpecVersion where
   parseJSON = withText "OpenApiSpecVersion" $ \str ->
             let validatedVersion :: Either String Version
                 validatedVersion = do
-                  parsedVersion <- readVersion str 
+                  parsedVersion <- readVersion str
                   unless ((parsedVersion >= lowerOpenApiSpecVersion) && (parsedVersion <= upperOpenApiSpecVersion)) $
                      Left ("The provided version " <> showVersion parsedVersion <> " is out of the allowed range >=" <> showVersion lowerOpenApiSpecVersion <> " && <=" <> showVersion upperOpenApiSpecVersion)
                   return parsedVersion
-             in 
+             in
               either fail (return . OpenApiSpecVersion) validatedVersion
     where
     readVersion :: Text -> Either String Version
-    readVersion v = case readP_to_S parseVersion (Text.unpack v) of 
+    readVersion v = case readP_to_S parseVersion (Text.unpack v) of
       [] -> Left $ "Failed to parse as a version string " <> Text.unpack v
       solutions -> Right (fst . last $ solutions)
 
@@ -1649,7 +1653,7 @@ instance HasSwaggerAesonOptions Encoding where
 instance HasSwaggerAesonOptions Link where
   swaggerAesonOptions _ = mkSwaggerAesonOptions "link"
 
-instance AesonDefaultValue Version where 
+instance AesonDefaultValue Version where
   defaultValue = Just (makeVersion [3,0,0])
 instance AesonDefaultValue OpenApiSpecVersion
 instance AesonDefaultValue Server

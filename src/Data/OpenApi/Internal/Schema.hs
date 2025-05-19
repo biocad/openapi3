@@ -24,7 +24,7 @@ module Data.OpenApi.Internal.Schema where
 import Prelude ()
 import Prelude.Compat
 
-import Control.Lens hiding (allOf)
+import Control.Lens hiding (allOf, anyOf)
 import Data.Data.Lens (template)
 
 import Control.Applicative ((<|>))
@@ -43,6 +43,7 @@ import qualified Data.HashMap.Strict.InsOrd as InsOrdHashMap
 import Data.Int
 import Data.IntSet (IntSet)
 import Data.IntMap (IntMap)
+import Data.Kind
 import Data.List (sort)
 import Data.List.NonEmpty.Compat (NonEmpty)
 import Data.Map (Map)
@@ -587,7 +588,7 @@ sketchStrictSchema = go . toJSON
       where
         names = objectKeys o
 
-class GToSchema (f :: * -> *) where
+class GToSchema (f :: Type -> Type) where
   gdeclareNamedSchema :: SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 
 instance {-# OVERLAPPABLE #-} ToSchema a => ToSchema [a] where
@@ -623,7 +624,10 @@ instance ToSchema Float       where declareNamedSchema = plain . paramSchemaToSc
 instance (Typeable (Fixed a), HasResolution a) => ToSchema (Fixed a) where declareNamedSchema = plain . paramSchemaToSchema
 
 instance ToSchema a => ToSchema (Maybe a) where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy a)
+  declareNamedSchema _ = do
+    ref <- declareSchemaRef (Proxy @a)
+    -- NB: using 'oneOf' goes wrong for nested Maybe's as both subschemas match 'null'.
+    pure $ unnamed $ mempty & anyOf ?~ [Inline $ mempty & type_ ?~ OpenApiNull, ref]
 
 instance (ToSchema a, ToSchema b) => ToSchema (Either a b) where
   -- To match Aeson instance
@@ -1016,10 +1020,7 @@ instance {-# OVERLAPPING #-} (Selector s, ToSchema c) => GToSchema (S1 s (K1 i (
 instance {-# OVERLAPPABLE #-} (Selector s, GToSchema f) => GToSchema (S1 s f) where
   gdeclareNamedSchema opts _ = fmap unnamed . withFieldSchema opts (Proxy2 :: Proxy2 s f) True
 
-instance {-# OVERLAPPING #-} ToSchema c => GToSchema (K1 i (Maybe c)) where
-  gdeclareNamedSchema _ _ _ = declareNamedSchema (Proxy :: Proxy c)
-
-instance {-# OVERLAPPABLE #-} ToSchema c => GToSchema (K1 i c) where
+instance ToSchema c => GToSchema (K1 i c) where
   gdeclareNamedSchema _ _ _ = declareNamedSchema (Proxy :: Proxy c)
 
 instance ( GSumToSchema f
@@ -1031,7 +1032,9 @@ instance ( GSumToSchema f
 
 gdeclareNamedSumSchema :: GSumToSchema f => SchemaOptions -> Proxy f -> Schema -> Declare (Definitions Schema) NamedSchema
 gdeclareNamedSumSchema opts proxy _
-  | allNullaryToStringTag opts && allNullary = pure $ unnamed (toStringTag sumSchemas)
+  | allNullaryToStringTag opts && allNullary = pure $ unnamed $ mempty
+      & type_ ?~ OpenApiString
+      & enum_ ?~ map (String . fst) sumSchemas
   | otherwise = do
     (schemas, _) <- runWriterT declareSumSchema
     return $ unnamed $ mempty
@@ -1040,13 +1043,9 @@ gdeclareNamedSumSchema opts proxy _
     declareSumSchema = gsumToSchema opts proxy
     (sumSchemas, All allNullary) = undeclare (runWriterT declareSumSchema)
 
-    toStringTag schemas = mempty
-      & type_ ?~ OpenApiString
-      & enum_ ?~ map (String . fst) sumSchemas
-
 type AllNullary = All
 
-class GSumToSchema (f :: * -> *)  where
+class GSumToSchema (f :: Type -> Type)  where
   gsumToSchema :: SchemaOptions -> Proxy f -> WriterT AllNullary (Declare (Definitions Schema)) [(T.Text, Referenced Schema)]
 
 instance (GSumToSchema f, GSumToSchema g) => GSumToSchema (f :+: g) where
