@@ -623,7 +623,14 @@ instance ToSchema Float       where declareNamedSchema = plain . paramSchemaToSc
 instance (Typeable (Fixed a), HasResolution a) => ToSchema (Fixed a) where declareNamedSchema = plain . paramSchemaToSchema
 
 instance ToSchema a => ToSchema (Maybe a) where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy a)
+  declareNamedSchema _ = do
+    NamedSchema mName aSchema <- declareNamedSchema (Proxy :: Proxy a)
+    
+    let aSchemaWithNull = mempty
+          { _schemaAnyOf = Just [Inline aSchema, Inline mempty { _schemaType = Just OpenApiNull }]
+          }
+
+    pure $ NamedSchema mName aSchemaWithNull
 
 instance (ToSchema a, ToSchema b) => ToSchema (Either a b) where
   -- To match Aeson instance
