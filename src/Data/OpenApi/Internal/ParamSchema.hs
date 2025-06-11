@@ -18,7 +18,7 @@
 module Data.OpenApi.Internal.ParamSchema where
 
 import Control.Lens
-import Data.Aeson (ToJSON (..))
+import Data.Aeson (ToJSON (..), Value(Number))
 import Data.Proxy
 import GHC.Generics
 
@@ -168,6 +168,7 @@ toParamSchemaBoundedIntegral _ = mempty
   & type_ ?~ OpenApiInteger
   & minimum_ ?~ fromInteger (toInteger (minBound :: a))
   & maximum_ ?~ fromInteger (toInteger (maxBound :: a))
+  & example ?~ Number 0
 
 instance ToParamSchema Char where
   toParamSchema _ = mempty
