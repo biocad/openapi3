@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE LambdaCase #-}
 module Data.OpenApiSpec where
 
 import Prelude ()
@@ -15,9 +16,10 @@ import Data.HashMap.Strict (HashMap)
 import qualified Data.HashSet.InsOrd as InsOrdHS
 import Data.Text (Text)
 
-import Data.OpenApi
 import SpecCommon
 import Test.Hspec hiding (example)
+import qualified Data.HashMap.Strict.InsOrd as InsOrdHM
+import Data.OpenApi
 
 spec :: Spec
 spec = do
@@ -46,7 +48,7 @@ spec = do
     context "Todo Example" $ swaggerExample <=> swaggerExampleJSON
     context "PetStore Example" $ do
       it "decodes successfully" $ do
-        fromJSON petstoreExampleJSON `shouldSatisfy` (\x -> case x of Success (_ :: OpenApi) -> True; _ -> False)
+        fromJSON petstoreExampleJSON `shouldSatisfy` (\case Success (_ :: OpenApi) -> True; _ -> False)
       it "roundtrips: fmap toJSON . fromJSON" $ do
         (toJSON :: OpenApi -> Value) <$> fromJSON petstoreExampleJSON `shouldBe` Success petstoreExampleJSON
     context "Security schemes" $ do
@@ -140,18 +142,20 @@ operationExample = mempty
     & description ?~ "ID of pet that needs to be updated"
     & required ?~ True
     & in_ .~ ParamPath
-    & schema ?~ Inline (mempty & type_ ?~ OpenApiString))]
+    & schema ?~ Inline (mempty & type_ ?~ OpenApiString)
+    & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("param-extension-here", "SomeString")]))]
   & requestBody ?~ Inline (
-    mempty & content . at "application/x-www-form-urlencoded" ?~ (mempty & schema ?~ (Inline (mempty
+    mempty & content . at "application/x-www-form-urlencoded" ?~ (mempty & schema ?~ Inline (mempty
       & properties . at "petId" ?~ Inline (mempty
         & description ?~ "Updated name of the pet"
         & type_ ?~ OpenApiString)
       & properties . at "status" ?~ Inline (mempty
         & description ?~ "Updated status of the pet"
-        & type_ ?~ OpenApiString)))))
+        & type_ ?~ OpenApiString))))
   & at 200 ?~ "Pet updated."
   & at 405 ?~ "Invalid input"
   & security .~ [SecurityRequirement [("petstore_auth", ["write:pets", "read:pets"])]]
+  & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("ext1", toJSON True)])
 
 operationExampleJSON :: Value
 operationExampleJSON = [aesonQQ|
@@ -170,7 +174,8 @@ operationExampleJSON = [aesonQQ|
       },
       "in": "path",
       "name": "petId",
-      "description": "ID of pet that needs to be updated"
+      "description": "ID of pet that needs to be updated",
+      "x-param-extension-here": "SomeString"
     }
   ],
   "requestBody": {
@@ -206,7 +211,8 @@ operationExampleJSON = [aesonQQ|
         "read:pets"
       ]
     }
-  ]
+  ],
+ "x-ext1": true
 }
 |]
 
@@ -238,6 +244,7 @@ schemaSimpleModelExample = mempty
             & minimum_ ?~ 0
             & type_    ?~ OpenApiInteger
             & format   ?~ "int32" ) ]
+  & extensions .~ SpecificationExtensions (InsOrdHM.fromList [("ext1", toJSON True)])
 
 schemaSimpleModelExampleJSON :: Value
 schemaSimpleModelExampleJSON = [aesonQQ|
@@ -255,7 +262,8 @@ schemaSimpleModelExampleJSON = [aesonQQ|
       "type": "integer"
     }
   },
-  "type": "object"
+  "type": "object",
+  "x-ext1": true
 }
 |]
 
@@ -456,15 +464,18 @@ securityDefinitionsExample :: SecurityDefinitions
 securityDefinitionsExample = SecurityDefinitions
   [ ("api_key", SecurityScheme
       { _securitySchemeType = SecuritySchemeApiKey (ApiKeyParams "api_key" ApiKeyHeader)
-      , _securitySchemeDescription = Nothing })
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = mempty })
   , ("petstore_auth", SecurityScheme
       { _securitySchemeType = SecuritySchemeOAuth2 (mempty & implicit ?~ OAuth2Flow
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
                 [ ("write:pets",  "modify pets in your account")
-                , ("read:pets", "read your pets") ] } )
-      , _securitySchemeDescription = Nothing }) ]
+                , ("read:pets", "read your pets") ]
+            , _oAuth2Extensions = mempty  } )
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = SpecificationExtensions (InsOrdHM.fromList [("ext1", toJSON True)])})]
 
 securityDefinitionsExampleJSON :: Value
 securityDefinitionsExampleJSON = [aesonQQ|
@@ -484,7 +495,8 @@ securityDefinitionsExampleJSON = [aesonQQ|
         },
         "authorizationUrl": "http://swagger.io/api/oauth/dialog"
       }
-    }
+    },
+  "x-ext1": true
   }
 }
 
@@ -497,8 +509,10 @@ oAuth2SecurityDefinitionsReadExample = SecurityDefinitions
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
-              [ ("read:pets", "read your pets") ] } )
-      , _securitySchemeDescription = Nothing })
+              [ ("read:pets", "read your pets") ]
+            , _oAuth2Extensions = mempty } )
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = mempty })
   ]
 
 oAuth2SecurityDefinitionsWriteExample :: SecurityDefinitions
@@ -508,8 +522,10 @@ oAuth2SecurityDefinitionsWriteExample = SecurityDefinitions
             { _oAuth2Params = OAuth2ImplicitFlow "http://swagger.io/api/oauth/dialog"
             , _oAath2RefreshUrl = Nothing
             , _oAuth2Scopes =
-                [ ("write:pets", "modify pets in your account") ] } )
-      , _securitySchemeDescription = Nothing })
+                [ ("write:pets", "modify pets in your account") ]
+            , _oAuth2Extensions = mempty } )
+      , _securitySchemeDescription = Nothing
+      , _securitySchemeExtensions = mempty })
   ]
 
 oAuth2SecurityDefinitionsEmptyExample :: SecurityDefinitions
@@ -615,6 +631,7 @@ swaggerExample = mempty
       & license ?~ "MIT"
       & license._Just.url ?~ URL "http://mit.com"
       & description ?~ "This is an API that tests servant-swagger support for a Todo API")
+
   & paths.at "/todo/{id}" ?~ (mempty & get ?~ ((mempty :: Operation)
       & responses . at 200 ?~ Inline (mempty
           & description .~ "OK"
