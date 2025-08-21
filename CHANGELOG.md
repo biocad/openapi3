@@ -1,6 +1,8 @@
 Unreleased
 ----------
 
+- (breaking) Use `nullable` for `Maybe` schemas [#113](https://github.com/biocad/openapi3/pull/113)
+
 3.2.4
 -----
 - Give `title` to sub schemas of sum types [#88](https://github.com/biocad/openapi3/pull/88).

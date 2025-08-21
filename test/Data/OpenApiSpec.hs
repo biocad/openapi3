@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Data.OpenApiSpec where
 
 import Prelude ()
@@ -13,11 +14,13 @@ import Data.Aeson
 import Data.Aeson.QQ.Simple
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashSet.InsOrd as InsOrdHS
+import Data.Proxy (Proxy(..))
 import Data.Text (Text)
 
 import Data.OpenApi
 import SpecCommon
 import Test.Hspec hiding (example)
+import GHC.Generics (Generic)
 
 spec :: Spec
 spec = do
@@ -53,6 +56,8 @@ spec = do
       it "merged correctly" $ do
         let merged = oAuth2SecurityDefinitionsReadOpenApi <> oAuth2SecurityDefinitionsWriteOpenApi <> oAuth2SecurityDefinitionsEmptyOpenApi
         merged `shouldBe` oAuth2SecurityDefinitionsOpenApi
+  it "Type Parameters Example" $ do
+    toJSON typeParametersExample `shouldBe` typeParametersExampleJSON
 
 main :: IO ()
 main = hspec spec
@@ -1001,5 +1006,35 @@ compositionSchemaExampleJSON = [aesonQQ|
         }
       }
   ]
+}
+|]
+
+data TypeParameters a
+  = TypeParameters
+  { typeParametersField1 :: Maybe Double
+  , typeParametersField2 :: a
+  } deriving (Generic)
+
+instance ToSchema a => ToSchema (TypeParameters a)
+
+typeParametersExample :: Schema
+typeParametersExample = toSchema (Proxy :: Proxy (TypeParameters (Maybe Double)))
+
+typeParametersExampleJSON :: Value
+typeParametersExampleJSON = [aesonQQ|
+{
+  "properties": {
+    "typeParametersField1": {
+      "format": "double",
+      "type": "number"
+    },
+    "typeParametersField2": {
+      "format": "double",
+      "type": "number",
+      "nullable": true
+    }
+  },
+  "required": ["typeParametersField2"],
+  "type": "object"
 }
 |]

@@ -623,7 +623,22 @@ instance ToSchema Float       where declareNamedSchema = plain . paramSchemaToSc
 instance (Typeable (Fixed a), HasResolution a) => ToSchema (Fixed a) where declareNamedSchema = plain . paramSchemaToSchema
 
 instance ToSchema a => ToSchema (Maybe a) where
-  declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy a)
+  declareNamedSchema _ = do
+    namedSchema <- declareNamedSchema (Proxy :: Proxy a)
+    pure
+      namedSchema
+      { _namedSchemaName = fmap ("Maybe_" <>) (_namedSchemaName namedSchema)
+      , _namedSchemaSchema =
+          _namedSchemaSchema namedSchema
+            & nullable ?~ True
+      }
+
+type NestedMaybeError =
+  Text "Nested " :<>: ShowType Maybe :<>: Text "s are not supported." :$$:
+  Text "OpenAPI 3 only supports a single level of nullability, so it can't distinguish between Nothing and Just Nothing."
+
+instance {-# OVERLAPPING #-} (TypeError NestedMaybeError, Typeable a) => ToSchema (Maybe (Maybe a)) where
+  declareNamedSchema _ = undefined
 
 instance (ToSchema a, ToSchema b) => ToSchema (Either a b) where
   -- To match Aeson instance
@@ -1010,7 +1025,7 @@ withFieldSchema opts _ isRequiredField schema = do
 
 -- | Optional record fields.
 instance {-# OVERLAPPING #-} (Selector s, ToSchema c) => GToSchema (S1 s (K1 i (Maybe c))) where
-  gdeclareNamedSchema opts _ = fmap unnamed . withFieldSchema opts (Proxy2 :: Proxy2 s (K1 i (Maybe c))) False
+  gdeclareNamedSchema opts _ = fmap unnamed . withFieldSchema opts (Proxy2 :: Proxy2 s (K1 i c)) False
 
 -- | Record fields.
 instance {-# OVERLAPPABLE #-} (Selector s, GToSchema f) => GToSchema (S1 s f) where
