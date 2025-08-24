@@ -1,13 +1,19 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
 -- |
 -- Module:      Data.OpenApi.SchemaOptions
 -- Maintainer:  Nickolay Kudasov <nickolay@getshoptv.com>
 -- Stability:   experimental
 --
 -- Generic deriving options for @'ToParamSchema'@ and @'ToSchema'@.
-module Data.OpenApi.SchemaOptions where
+module Data.OpenApi.SchemaOptions (
+    SchemaOptions (..)
+  , defaultSchemaOptions
+  , fromAesonOptions
+) where
 
 import qualified Data.Aeson.Types as Aeson
+import Data.Char
 
 -- | Options that specify how to encode your type to Swagger schema.
 data SchemaOptions = SchemaOptions
@@ -40,13 +46,25 @@ data SchemaOptions = SchemaOptions
 -- @
 defaultSchemaOptions :: SchemaOptions
 defaultSchemaOptions = SchemaOptions
+  -- \x -> traceShowId x
   { fieldLabelModifier = id
   , constructorTagModifier = id
-  , datatypeNameModifier = id
+  , datatypeNameModifier = conformDatatypeNameModifier
   , allNullaryToStringTag = True
   , unwrapUnaryRecords = False
   , sumEncoding = Aeson.defaultTaggedObject
   }
+
+
+-- | According to spec https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#components-object 
+-- name must conform to ^[a-zA-Z0-9\.\-_]+$
+conformDatatypeNameModifier :: String -> String
+conformDatatypeNameModifier = 
+  foldl (\acc x -> acc ++ convertChar x) ""  
+  where 
+    convertChar = \case 
+      c | isAlphaNum c || elem c "-._" -> [c]
+      c -> "_" ++ (show $ ord c) ++ "_"
 
 -- | Convert 'Aeson.Options' to 'SchemaOptions'.
 --
