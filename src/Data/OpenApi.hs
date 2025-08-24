@@ -30,7 +30,6 @@ module Data.OpenApi (
 
   -- * Re-exports
   module Data.OpenApi.Lens,
-  module Data.OpenApi.Optics,
   module Data.OpenApi.Operation,
   module Data.OpenApi.ParamSchema,
   module Data.OpenApi.Schema,

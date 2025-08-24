@@ -19,6 +19,7 @@ module Data.OpenApi.Internal.ParamSchema where
 
 import Control.Lens
 import Data.Aeson (ToJSON (..))
+import Data.Kind
 import Data.Proxy
 import GHC.Generics
 
@@ -163,7 +164,7 @@ instance ToParamSchema Word64 where
 --     "minimum": -128,
 --     "type": "integer"
 -- }
-toParamSchemaBoundedIntegral :: forall a t. (Bounded a, Integral a) => Proxy a -> Schema
+toParamSchemaBoundedIntegral :: forall a. (Bounded a, Integral a) => Proxy a -> Schema
 toParamSchemaBoundedIntegral _ = mempty
   & type_ ?~ OpenApiInteger
   & minimum_ ?~ fromInteger (toInteger (minBound :: a))
@@ -310,10 +311,10 @@ instance ToParamSchema UUID where
 --     ],
 --     "type": "string"
 -- }
-genericToParamSchema :: forall a t. (Generic a, GToParamSchema (Rep a)) => SchemaOptions -> Proxy a -> Schema
+genericToParamSchema :: forall a. (Generic a, GToParamSchema (Rep a)) => SchemaOptions -> Proxy a -> Schema
 genericToParamSchema opts _ = gtoParamSchema opts (Proxy :: Proxy (Rep a)) mempty
 
-class GToParamSchema (f :: * -> *) where
+class GToParamSchema (f :: Type -> Type) where
   gtoParamSchema :: SchemaOptions -> Proxy f -> Schema -> Schema
 
 instance GToParamSchema f => GToParamSchema (D1 d f) where
@@ -331,7 +332,7 @@ instance ToParamSchema c => GToParamSchema (K1 i c) where
 instance (GEnumParamSchema f, GEnumParamSchema g) => GToParamSchema (f :+: g) where
   gtoParamSchema opts _ = genumParamSchema opts (Proxy :: Proxy (f :+: g))
 
-class GEnumParamSchema (f :: * -> *) where
+class GEnumParamSchema (f :: Type -> Type) where
   genumParamSchema :: SchemaOptions -> Proxy f -> Schema -> Schema
 
 instance (GEnumParamSchema f, GEnumParamSchema g) => GEnumParamSchema (f :+: g) where

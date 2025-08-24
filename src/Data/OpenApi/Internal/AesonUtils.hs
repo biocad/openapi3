@@ -4,6 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 module Data.OpenApi.Internal.AesonUtils (
     -- * Generic functions
@@ -114,8 +115,7 @@ sopSwaggerGenericToJSON x =
 -- Also uses default `aesonDefaults`
 sopSwaggerGenericToJSONWithOpts
     :: forall a xs.
-        ( Generic a
-        , All2 AesonDefaultValue (Code a)
+        ( All2 AesonDefaultValue (Code a)
         , HasDatatypeInfo a
         , All2 ToJSON (Code a)
         , All2 Eq (Code a)
