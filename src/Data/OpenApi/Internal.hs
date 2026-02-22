@@ -111,8 +111,9 @@ lowerOpenApiSpecVersion :: Version
 lowerOpenApiSpecVersion = makeVersion [3, 0, 0]
 
 -- | This is the upper version of the OpenApi Spec this library can parse or produce
+-- Note: Extended to 3.1.x with partial support for 3.1 features (exclusiveMinimum/Maximum as numbers)
 upperOpenApiSpecVersion :: Version
-upperOpenApiSpecVersion = makeVersion [3, 0, 3]
+upperOpenApiSpecVersion = makeVersion [3, 1, 99]
 
 -- | The object provides metadata about the API.
 -- The metadata MAY be used by the clients if needed,
