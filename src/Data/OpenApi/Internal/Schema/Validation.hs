@@ -305,16 +305,34 @@ validateInteger n = do
 
 validateNumber :: Scientific -> Validation Schema ()
 validateNumber n = withConfig $ \_cfg -> withSchema $ \sch -> do
-  let exMax = Just True == sch ^. exclusiveMaximum
-      exMin = Just True == sch ^. exclusiveMinimum
+  -- Handle OpenAPI 3.0 style (exclusiveMinimum/Maximum as Bool modifying minimum/maximum)
+  let exMaxBool = case sch ^. exclusiveMaximum of
+        Just (ExclusiveBool True) -> True
+        _ -> False
+      exMinBool = case sch ^. exclusiveMinimum of
+        Just (ExclusiveBool True) -> True
+        _ -> False
+
+  -- Handle OpenAPI 3.1 style (exclusiveMinimum/Maximum as the actual bound value)
+  case sch ^. exclusiveMaximum of
+    Just (ExclusiveValue m) ->
+      when (n >= m) $
+        invalid ("value " ++ show n ++ " exceeds exclusive maximum (should be <" ++ show m ++ ")")
+    _ -> pure ()
+
+  case sch ^. exclusiveMinimum of
+    Just (ExclusiveValue m) ->
+      when (n <= m) $
+        invalid ("value " ++ show n ++ " falls below exclusive minimum (should be >" ++ show m ++ ")")
+    _ -> pure ()
 
   check maximum_ $ \m ->
-    when (if exMax then (n >= m) else (n > m)) $
-      invalid ("value " ++ show n ++ " exceeds maximum (should be " ++ (if exMax then "<" else "<=") ++ show m ++ ")")
+    when (if exMaxBool then (n >= m) else (n > m)) $
+      invalid ("value " ++ show n ++ " exceeds maximum (should be " ++ (if exMaxBool then "<" else "<=") ++ show m ++ ")")
 
   check minimum_ $ \m ->
-    when (if exMin then (n <= m) else (n < m)) $
-      invalid ("value " ++ show n ++ " falls below minimum (should be " ++ (if exMin then ">" else ">=") ++ show m ++ ")")
+    when (if exMinBool then (n <= m) else (n < m)) $
+      invalid ("value " ++ show n ++ " falls below minimum (should be " ++ (if exMinBool then ">" else ">=") ++ show m ++ ")")
 
   check multipleOf $ \k ->
     when (not (isInteger (n / k))) $

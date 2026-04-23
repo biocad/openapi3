@@ -112,7 +112,7 @@ instance
   maximum_ = schema.maximum_
 
 instance {-# OVERLAPPABLE #-} HasSchema s Schema
-  => HasExclusiveMaximum s (Maybe Bool) where
+  => HasExclusiveMaximum s (Maybe ExclusiveBound) where
   exclusiveMaximum = schema.exclusiveMaximum
 
 instance {-# OVERLAPPABLE #-} HasSchema s Schema
@@ -120,7 +120,7 @@ instance {-# OVERLAPPABLE #-} HasSchema s Schema
   minimum_ = schema.minimum_
 
 instance {-# OVERLAPPABLE #-} HasSchema s Schema
-  => HasExclusiveMinimum s (Maybe Bool) where
+  => HasExclusiveMinimum s (Maybe ExclusiveBound) where
   exclusiveMinimum = schema.exclusiveMinimum
 
 instance {-# OVERLAPPABLE #-} HasSchema s Schema

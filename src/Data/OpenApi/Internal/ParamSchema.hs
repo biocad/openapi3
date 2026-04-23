@@ -121,7 +121,7 @@ instance ToParamSchema Natural where
   toParamSchema _ = mempty
     & type_            ?~ OpenApiInteger
     & minimum_         ?~ 0
-    & exclusiveMinimum ?~ False
+    & exclusiveMinimum ?~ ExclusiveBool False
 
 instance ToParamSchema Int    where toParamSchema = toParamSchemaBoundedIntegral
 instance ToParamSchema Int8   where toParamSchema = toParamSchemaBoundedIntegral

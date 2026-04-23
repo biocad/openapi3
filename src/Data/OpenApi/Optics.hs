@@ -236,7 +236,7 @@ instance
 -- #exclusiveMaximum
 
 instance
-  ( a ~ Maybe Bool, b ~ Maybe Bool
+  ( a ~ Maybe ExclusiveBound, b ~ Maybe ExclusiveBound
   ) => LabelOptic "exclusiveMaximum" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #exclusiveMaximum
   {-# INLINE labelOptic #-}
@@ -252,7 +252,7 @@ instance
 -- #exclusiveMinimum
 
 instance
-  ( a ~ Maybe Bool, b ~ Maybe Bool
+  ( a ~ Maybe ExclusiveBound, b ~ Maybe ExclusiveBound
   ) => LabelOptic "exclusiveMinimum" A_Lens NamedSchema NamedSchema a b where
   labelOptic = #schema % #exclusiveMinimum
   {-# INLINE labelOptic #-}

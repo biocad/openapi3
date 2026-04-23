@@ -97,8 +97,9 @@ lowerOpenApiSpecVersion :: Version
 lowerOpenApiSpecVersion = makeVersion [3, 0, 0]
 
 -- | This is the upper version of the OpenApi Spec this library can parse or produce
+-- Note: Extended to 3.1.x with partial support for 3.1 features (exclusiveMinimum/Maximum as numbers)
 upperOpenApiSpecVersion :: Version
-upperOpenApiSpecVersion = makeVersion [3, 0, 3]
+upperOpenApiSpecVersion = makeVersion [3, 1, 99]
 
 -- | The object provides metadata about the API.
 -- The metadata MAY be used by the clients if needed,
@@ -616,6 +617,24 @@ type Format = Text
 
 type ParamName = Text
 
+-- | Exclusive bound for minimum/maximum values.
+-- In OpenAPI 3.0, this is a Bool indicating whether the bound is exclusive.
+-- In OpenAPI 3.1, this is a Scientific value representing the exclusive bound itself.
+data ExclusiveBound
+  = ExclusiveBool Bool         -- ^ OpenAPI 3.0 style: true means the minimum/maximum is exclusive
+  | ExclusiveValue Scientific  -- ^ OpenAPI 3.1 style: the actual exclusive bound value
+  deriving (Eq, Show, Generic, Data, Typeable)
+
+-- | Check if the bound is exclusive (for backward compatibility with 3.0 code)
+isExclusive :: ExclusiveBound -> Bool
+isExclusive (ExclusiveBool b) = b
+isExclusive (ExclusiveValue _) = True
+
+-- | Get the exclusive value if using 3.1 style, Nothing for 3.0 style
+exclusiveValue :: ExclusiveBound -> Maybe Scientific
+exclusiveValue (ExclusiveValue v) = Just v
+exclusiveValue (ExclusiveBool _) = Nothing
+
 data Schema = Schema
   { _schemaTitle :: Maybe Text
   , _schemaDescription :: Maybe Text
@@ -651,9 +670,9 @@ data Schema = Schema
   , _schemaFormat :: Maybe Format
   , _schemaItems :: Maybe OpenApiItems
   , _schemaMaximum :: Maybe Scientific
-  , _schemaExclusiveMaximum :: Maybe Bool
+  , _schemaExclusiveMaximum :: Maybe ExclusiveBound
   , _schemaMinimum :: Maybe Scientific
-  , _schemaExclusiveMinimum :: Maybe Bool
+  , _schemaExclusiveMinimum :: Maybe ExclusiveBound
   , _schemaMaxLength :: Maybe Integer
   , _schemaMinLength :: Maybe Integer
   , _schemaPattern :: Maybe Pattern
@@ -1170,6 +1189,11 @@ instance ToJSON Style where
 instance ToJSON OpenApiType where
   toJSON = genericToJSON (jsonPrefix "Swagger")
 
+-- | Serialize ExclusiveBound - uses 3.1 style (Number) for values, 3.0 style (Bool) for bools
+instance ToJSON ExclusiveBound where
+  toJSON (ExclusiveBool b) = Bool b
+  toJSON (ExclusiveValue n) = Number n
+
 instance ToJSON ParamLocation where
   toJSON = genericToJSON (jsonPrefix "Param")
 
@@ -1224,6 +1248,12 @@ instance FromJSON Style where
 
 instance FromJSON OpenApiType where
   parseJSON = genericParseJSON (jsonPrefix "Swagger")
+
+-- | Parse ExclusiveBound from either Bool (3.0) or Number (3.1)
+instance FromJSON ExclusiveBound where
+  parseJSON (Bool b) = pure (ExclusiveBool b)
+  parseJSON (Number n) = pure (ExclusiveValue n)
+  parseJSON _ = empty
 
 instance FromJSON ParamLocation where
   parseJSON = genericParseJSON (jsonPrefix "Param")
