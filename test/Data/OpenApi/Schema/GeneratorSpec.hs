@@ -23,6 +23,7 @@ import           Data.Map                            (Map, fromList)
 import           Data.Monoid                         (mempty)
 import           Data.Proxy
 import           Data.Proxy
+import           Data.Sequence                       (Seq)
 import           Data.Set                            (Set)
 import qualified Data.Text                           as T
 import qualified Data.Text.Lazy                      as TL
@@ -68,6 +69,7 @@ spec = do
     prop "T.Text" $ shouldValidate (Proxy :: Proxy T.Text)
     prop "TL.Text" $ shouldValidate (Proxy :: Proxy TL.Text)
     prop "[String]" $ shouldValidate (Proxy :: Proxy [String])
+    prop "Seq String" $ shouldValidate (Proxy :: Proxy (Seq String))
     -- prop "(Maybe [Int])" $ shouldValidate (Proxy :: Proxy (Maybe [Int]))
     prop "(IntMap String)" $ shouldValidate (Proxy :: Proxy (IntMap String))
     prop "(Set Bool)" $ shouldValidate (Proxy :: Proxy (Set Bool))
