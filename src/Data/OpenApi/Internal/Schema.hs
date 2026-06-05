@@ -37,6 +37,7 @@ import Data.Proxy
 import Data.Scientific (Scientific)
 import Data.Fixed (Fixed, HasResolution, Pico)
 import Data.Set (Set)
+import Data.Sequence (Seq)
 import Data.Semigroup
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -720,6 +721,8 @@ instance ToSchema a => ToSchema (Set a) where
       & uniqueItems ?~ True
 
 instance ToSchema a => ToSchema (HashSet a) where declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy (Set a))
+
+instance ToSchema a => ToSchema (Seq a) where declareNamedSchema _ = declareNamedSchema (Proxy :: Proxy [a])
 
 -- | @since 2.2.1
 instance ToSchema a => ToSchema (NonEmpty a) where
