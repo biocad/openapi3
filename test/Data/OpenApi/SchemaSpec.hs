@@ -7,8 +7,9 @@ module Data.OpenApi.SchemaSpec where
 import Prelude ()
 import Prelude.Compat
 
-import Control.Lens ((^.))
-import Data.Aeson (Value)
+import Control.Lens ((&), (?~), (^.))
+import Data.Aeson (Value, toJSON)
+import Data.Aeson.QQ.Simple (aesonQQ)
 import qualified Data.HashMap.Strict.InsOrd.Compat as InsOrdHashMap
 import Data.Proxy
 import Data.Set (Set)
@@ -19,7 +20,7 @@ import Data.OpenApi.Declare
 
 import Data.OpenApi.CommonTestTypes
 import SpecCommon
-import Test.Hspec
+import Test.Hspec hiding (example)
 
 import qualified Data.HashMap.Strict as HM
 import Data.Time.LocalTime
@@ -64,6 +65,46 @@ checkToSchemaDeclare proxy js = runDeclare (declareSchemaRef proxy) mempty <=> j
 
 spec :: Spec
 spec = do
+  describe "sketchSchema arrays" $ do
+    context "empty array" $ do
+      it "preserves empty tuple items and the example" $
+        sketchSchema [aesonQQ| [] |] `shouldBe`
+          (mempty & type_ ?~ OpenApiArray
+                  & items ?~ OpenApiItemsArray []
+                  & example ?~ [aesonQQ| [] |])
+      it "encodes empty tuple items with a zero maximum length" $
+        toJSON (sketchSchema [aesonQQ| [] |]) `shouldBe` [aesonQQ|
+          { "type": "array", "items": {}, "maxItems": 0, "example": [] }
+        |]
+    context "singleton array" $
+      sketchSchema [aesonQQ| [1] |] <=> [aesonQQ|
+        { "type": "array", "items": { "type": "number" }, "example": [1] }
+      |]
+    context "homogeneous array" $
+      sketchSchema [aesonQQ| [1, 2, 3] |] <=> [aesonQQ|
+        { "type": "array", "items": { "type": "number" }, "example": [1, 2, 3] }
+      |]
+    context "heterogeneous array" $
+      sketchSchema [aesonQQ| [1, true] |] <=> [aesonQQ|
+        { "type": "array", "items": [{ "type": "number" }, { "type": "boolean" }],
+          "example": [1, true] }
+      |]
+    context "matching first and last schemas with a different middle schema" $
+      sketchSchema [aesonQQ| [1, true, 2] |] <=> [aesonQQ|
+        { "type": "array", "items": [{ "type": "number" }, { "type": "boolean" }, { "type": "number" }],
+          "example": [1, true, 2] }
+      |]
+    context "homogeneous nested arrays" $
+      sketchSchema [aesonQQ| [[1, 2], [3, 4]] |] <=> [aesonQQ|
+        { "type": "array", "items": { "type": "array", "items": { "type": "number" } },
+          "example": [[1, 2], [3, 4]] }
+      |]
+    context "heterogeneous nested arrays" $
+      sketchSchema [aesonQQ| [[1], ["a"]] |] <=> [aesonQQ|
+        { "type": "array", "items": [{ "type": "array", "items": { "type": "number" } },
+                                     { "type": "array", "items": { "type": "string" } }],
+          "example": [[1], ["a"]] }
+      |]
   describe "Generic ToSchema" $ do
     context "Unit" $ checkToSchema (Proxy :: Proxy Unit) unitSchemaJSON
     context "Person" $ checkToSchema (Proxy :: Proxy Person) personSchemaJSON
