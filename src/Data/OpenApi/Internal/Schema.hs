@@ -394,7 +394,7 @@ sketchSchema = sketch . toJSON
           _      -> OpenApiItemsArray (map Inline ys)
       where
         ys = map go (V.toList xs)
-        allSame = and ((zipWith (==)) ys (tail ys))
+        allSame = and ((zipWith (==)) ys (drop 1 ys))
 
         ischema = case ys of
           (z:_) | allSame -> Just z
