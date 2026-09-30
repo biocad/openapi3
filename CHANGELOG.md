@@ -1,6 +1,8 @@
 Unreleased
 ----------
 
+- Avoid the partial `tail` in `sketchSchema`'s array comparison, allowing GHC 9.14 `-Werror` builds without changing the generated schemas.
+
 3.2.5
 -----
 
