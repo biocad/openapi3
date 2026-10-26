@@ -1,6 +1,8 @@
 Unreleased
 ----------
 
+- (breaking) Use `nullable` for `Maybe` schemas [#113](https://github.com/biocad/openapi3/pull/113)
+
 3.2.5
 -----
 
