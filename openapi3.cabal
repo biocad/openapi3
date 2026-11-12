@@ -46,6 +46,7 @@ library
   exposed-modules:
     Data.OpenApi
     Data.OpenApi.Declare
+    Data.OpenApi.Deriving
     Data.OpenApi.Lens
     Data.OpenApi.Operation
     Data.OpenApi.Optics
@@ -176,6 +177,7 @@ test-suite spec
     SpecCommon
     Data.OpenApiSpec
     Data.OpenApi.CommonTestTypes
+    Data.OpenApi.DerivingSpec
     Data.OpenApi.ParamSchemaSpec
     Data.OpenApi.SchemaSpec
     Data.OpenApi.Schema.ValidationSpec

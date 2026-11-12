@@ -1,6 +1,8 @@
 Unreleased
 ----------
 
+- Add `Data.OpenApi.Deriving`: `WithAesonOptions` derives `ToJSON`, `FromJSON` and `ToSchema` via `DerivingVia` from one set of Aeson `Options`.
+
 3.2.5
 -----
 
