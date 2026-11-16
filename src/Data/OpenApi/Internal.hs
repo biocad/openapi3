@@ -952,7 +952,7 @@ newtype Reference = Reference { getReference :: Text }
 data Referenced a
   = Ref Reference
   | Inline a
-  deriving (Eq, Show, Functor, Data, Typeable)
+  deriving (Eq, Show, Data, Typeable)
 
 instance IsString a => IsString (Referenced a) where
   fromString = Inline . fromString
